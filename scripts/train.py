@@ -18,9 +18,20 @@ from src.utils.seed import seed_everything
 from src.utils.serialization import save_checkpoint
 
 
-def train_run(env_name: str, method_name: str, seed: int, total_steps: int, profile_name: str, results_root: Path | None = None) -> Path:
-    results_root = results_root or (ROOT / "results")
-    run_dir = results_root / "runs" / env_name / method_name / f"seed_{seed}"
+def train_run(
+    env_name: str,
+    method_name: str,
+    seed: int,
+    total_steps: int,
+    profile_name: str,
+    results_root: Path | None = None,
+    env_kwargs: dict | None = None,
+    output_env_name: str | None = None,
+) -> Path:
+    results_root = Path(results_root) if results_root is not None else (ROOT / "results")
+    env_kwargs = env_kwargs or {}
+    output_env_name = output_env_name or env_name
+    run_dir = results_root / "runs" / output_env_name / method_name / f"seed_{seed}"
     guard = check_resource_guard(ROOT, results_root, profile_name)
     if not guard.allowed:
         raise RuntimeError(guard.reason)
@@ -31,7 +42,7 @@ def train_run(env_name: str, method_name: str, seed: int, total_steps: int, prof
         "CONSERVATIVE_PROXY_PPO": "method_conservative_proxy.yaml",
     }[method_name]
     cfg = load_config(config_file)
-    trainer = PPOTrainer(lambda: make_env(env_name, split="id"), PPOConfig.from_dict(cfg))
+    trainer = PPOTrainer(lambda: make_env(env_name, split="id", **env_kwargs), PPOConfig.from_dict(cfg))
     start = time.time()
     result = trainer.train(total_steps=total_steps)
     wall_clock = time.time() - start
@@ -56,6 +67,7 @@ def train_run(env_name: str, method_name: str, seed: int, total_steps: int, prof
         append_inventory(results_root / "artifact_inventory.csv", run_dir / "train_metrics.csv.gz", "train_metrics")
     summary = {
         "env_name": env_name,
+        "output_env_name": output_env_name,
         "method": method_name,
         "seed": seed,
         "run_dir": str(run_dir),
@@ -64,6 +76,7 @@ def train_run(env_name: str, method_name: str, seed: int, total_steps: int, prof
         "profile_name": profile_name,
         "episodes_completed": result["episodes"],
         "final_episode": result["final_episode"],
+        "env_kwargs": env_kwargs,
     }
     write_json(run_dir / "summary.json", summary)
     append_inventory(results_root / "artifact_inventory.csv", latest, "checkpoint")
@@ -79,8 +92,16 @@ def main() -> None:
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--steps", type=int, required=True)
     parser.add_argument("--profile", required=True)
+    parser.add_argument("--results-root")
     args = parser.parse_args()
-    run_dir = train_run(args.env, args.method, args.seed, args.steps, args.profile)
+    run_dir = train_run(
+        args.env,
+        args.method,
+        args.seed,
+        args.steps,
+        args.profile,
+        results_root=Path(args.results_root) if args.results_root else None,
+    )
     print(json.dumps({"run_dir": str(run_dir)}))
 
 

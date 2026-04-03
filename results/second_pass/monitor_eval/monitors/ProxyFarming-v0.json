@@ -1,0 +1,82 @@
+[
+  {
+    "env": "ProxyFarming-v0",
+    "channel": "restricted",
+    "model": "logistic_regression",
+    "target": "hack",
+    "eval_split": "id",
+    "ROC_AUC": null,
+    "PR_AUC": null,
+    "leakage_status": "degenerate"
+  },
+  {
+    "env": "ProxyFarming-v0",
+    "channel": "restricted",
+    "model": "logistic_regression",
+    "target": "failure",
+    "eval_split": "id",
+    "ROC_AUC": null,
+    "PR_AUC": null,
+    "leakage_status": "degenerate"
+  },
+  {
+    "env": "ProxyFarming-v0",
+    "channel": "restricted",
+    "model": "gradient_boosting",
+    "target": "hack",
+    "eval_split": "id",
+    "ROC_AUC": null,
+    "PR_AUC": null,
+    "leakage_status": "degenerate"
+  },
+  {
+    "env": "ProxyFarming-v0",
+    "channel": "restricted",
+    "model": "gradient_boosting",
+    "target": "failure",
+    "eval_split": "id",
+    "ROC_AUC": null,
+    "PR_AUC": null,
+    "leakage_status": "degenerate"
+  },
+  {
+    "env": "ProxyFarming-v0",
+    "channel": "rich",
+    "model": "logistic_regression",
+    "target": "hack",
+    "eval_split": "id",
+    "ROC_AUC": null,
+    "PR_AUC": null,
+    "leakage_status": "degenerate"
+  },
+  {
+    "env": "ProxyFarming-v0",
+    "channel": "rich",
+    "model": "logistic_regression",
+    "target": "failure",
+    "eval_split": "id",
+    "ROC_AUC": null,
+    "PR_AUC": null,
+    "leakage_status": "degenerate"
+  },
+  {
+    "env": "ProxyFarming-v0",
+    "channel": "rich",
+    "model": "gradient_boosting",
+    "target": "hack",
+    "eval_split": "id",
+    "ROC_AUC": null,
+    "PR_AUC": null,
+    "leakage_status": "degenerate"
+  },
+  {
+    "env": "ProxyFarming-v0",
+    "channel": "rich",
+    "model": "gradient_boosting",
+    "target": "failure",
+    "eval_split": "id",
+    "ROC_AUC": null,
+    "PR_AUC": null,
+    "leakage_status": "degenerate"
+  }
+]

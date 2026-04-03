@@ -20,6 +20,7 @@ def write_experiment_section(results_root: str | Path, latex_root: str | Path) -
     lines = [
         r"\section{Experimental Setup}",
         "We ran the saved experiment matrix using the active profile recorded in the preflight artifact.",
+        "For monitor evaluation, we construct trajectory datasets from stochastic rollouts of the proxy-trained policy family only. The oracle baseline remains a diagnosis bound for specification-gap measurement rather than a deployable policy family, and mixing oracle with proxy rollouts made the first-pass monitor task method-trivial.",
         "Table \\ref{tab:resource-results} reports the concrete seed counts, step budgets, wall-clock usage, and disk footprint derived from saved run summaries.",
         r"\IfFileExists{tables/environment_summary.tex}{\input{tables/environment_summary}}{\todoartifact{environment summary table not yet generated}}",
         r"\IfFileExists{tables/resource_results.tex}{\input{tables/resource_results}}{\todoartifact{resource results table not yet generated}}",
@@ -84,16 +85,30 @@ def _monitor_summary(monitor_csv: Path | None) -> str:
     monitor_df = pd.read_csv(monitor_csv)
     if monitor_df.empty:
         return "Monitor results are not yet available."
-    failures = sorted(monitor_df.loc[monitor_df["leakage_status"] == "fail", "env"].unique().tolist())
-    degenerates = sorted(monitor_df.loc[monitor_df["leakage_status"] == "degenerate", "env"].unique().tolist())
+    hack_df = monitor_df.copy()
+    if "target" in hack_df.columns:
+        hack_df = hack_df[hack_df["target"] == "hack"]
+    score_column = "ROC_AUC"
+    if score_column not in hack_df.columns and "ROC_AUC_hack" in hack_df.columns:
+        score_column = "ROC_AUC_hack"
+    accepted = sorted(
+        hack_df.loc[
+            hack_df[score_column].notna() & hack_df["leakage_status"].isin(["pass", "warning"]),
+            "env",
+        ].unique().tolist()
+    )
+    failures = sorted(hack_df.loc[hack_df["leakage_status"] == "fail", "env"].unique().tolist())
+    degenerates = sorted(hack_df.loc[hack_df["leakage_status"] == "degenerate", "env"].unique().tolist())
     clauses = []
+    if accepted:
+        clauses.append(f"Leakage-controlled hack-monitor estimates were accepted for {', '.join(accepted)}")
     if failures:
-        clauses.append(f"leakage diagnostics failed for {', '.join(failures)}")
+        clauses.append(f"leakage diagnostics still failed for {', '.join(failures)}")
     if degenerates:
-        clauses.append(f"monitor targets were degenerate for {', '.join(degenerates)}")
+        clauses.append(f"hack-monitor targets remained degenerate for {', '.join(degenerates)}")
     if not clauses:
-        return "Monitor evaluations survived the leakage checks for all saved environments."
-    return "Monitor evaluations were limited because " + " and ".join(clauses) + "."
+        return "Monitor evaluations are not yet available."
+    return "; ".join(clauses) + "."
 
 
 def make_empirical_summary(main_df: pd.DataFrame, monitor_csv: Path | None) -> str:
@@ -114,8 +129,8 @@ def make_abstract_results_sentence(main_df: pd.DataFrame, monitor_csv: Path | No
 
 
 def make_intro_results_sentence(main_df: pd.DataFrame, monitor_csv: Path | None) -> str:
-    return "\n\nAcross the saved Stage~1 runs, " + make_empirical_summary(main_df, monitor_csv) + "\n"
+    return "\n\nAcross the saved second-pass runs, " + make_empirical_summary(main_df, monitor_csv) + "\n"
 
 
 def make_conclusion_results_sentence(main_df: pd.DataFrame, monitor_csv: Path | None) -> str:
-    return "\n\nEmpirically, the current saved matrix surfaces large proxy failures in some environments while also revealing unresolved monitor-leakage and label-degeneracy limits that should remain part of the paper's claims.\n"
+    return "\n\nEmpirically, " + make_empirical_summary(main_df, monitor_csv) + "\n"

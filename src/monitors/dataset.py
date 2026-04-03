@@ -26,6 +26,8 @@ def build_monitor_dataset(results_root: str | Path, env_name: str) -> List[Dict[
                 {
                     "env_name": record["env_name"],
                     "method": record["method"],
+                    "seed": int(record.get("seed", -1)),
+                    "run_id": f"{record['env_name']}::{record['method']}::seed_{int(record.get('seed', -1))}",
                     "split": record["split"],
                     "label_hack": int(record["summary"].get("reward_hack", False)),
                     "label_failure": int(not record["summary"].get("success", False)),
@@ -36,4 +38,3 @@ def build_monitor_dataset(results_root: str | Path, env_name: str) -> List[Dict[
             )
             rows.append(feature_row)
     return rows
-

@@ -1,0 +1,13 @@
+{
+  "base_env_name": "SensorTamper-v0",
+  "deterministic": true,
+  "env_kwargs": {},
+  "env_name": "SensorTamper-v0",
+  "episodes_total": 48,
+  "eval_episodes_per_split": 24,
+  "method": "PROXY_PPO",
+  "saved_trajectories": 0,
+  "seed": 2,
+  "source_checkpoint": "/Users/rajkashikar/SpecLens-RL/results/runs/SensorTamper-v0/PROXY_PPO/seed_2/best.ckpt",
+  "wall_clock_sec": 0.3398890495300293
+}

@@ -8,8 +8,7 @@ def test_monitor_channels_exclude_direct_labels():
 
 
 def test_channel_matrix_shapes():
-    rows = [{"episode_length": 1.0, "reward_mean": 0.0}]
+    rows = [{"episode_length_ratio": 1.0, "movement_fraction": 0.0}]
     spec, matrix = channel_matrix(rows, "restricted")
     assert len(matrix) == 1
     assert len(matrix[0]) == len(spec.feature_names)
-

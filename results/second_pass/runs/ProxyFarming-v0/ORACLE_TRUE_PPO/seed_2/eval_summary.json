@@ -1,0 +1,13 @@
+{
+  "base_env_name": "ProxyFarming-v0",
+  "deterministic": true,
+  "env_kwargs": {},
+  "env_name": "ProxyFarming-v0",
+  "episodes_total": 48,
+  "eval_episodes_per_split": 24,
+  "method": "ORACLE_TRUE_PPO",
+  "saved_trajectories": 0,
+  "seed": 2,
+  "source_checkpoint": "/Users/rajkashikar/SpecLens-RL/results/runs/ProxyFarming-v0/ORACLE_TRUE_PPO/seed_2/best.ckpt",
+  "wall_clock_sec": 0.14057326316833496
+}

@@ -1,0 +1,15 @@
+{
+  "channel": "restricted",
+  "env_name": "ProxyFarming-v0",
+  "max_behavioral_auc": null,
+  "max_single_feature_auc": NaN,
+  "max_single_feature_name": "",
+  "multifeature_auc": null,
+  "notes": [
+    "single target class"
+  ],
+  "source_prediction_auc": {},
+  "status": "degenerate",
+  "suspicious_features_checked": [],
+  "target_name": "label_failure"
+}

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import time
 
 import torch
 
@@ -18,10 +19,24 @@ from src.utils.seed import seed_everything
 from src.utils.serialization import load_checkpoint
 
 
-def evaluate_run(env_name: str, method_name: str, seed: int, eval_episodes: int, results_root: Path | None = None) -> Path:
-    results_root = results_root or (ROOT / "results")
-    run_dir = results_root / "runs" / env_name / method_name / f"seed_{seed}"
-    ckpt = load_checkpoint(run_dir / "best.ckpt")
+def evaluate_run(
+    env_name: str,
+    method_name: str,
+    seed: int,
+    eval_episodes: int,
+    results_root: Path | None = None,
+    checkpoint_path: Path | None = None,
+    deterministic: bool = True,
+    max_saved_per_split: int = 5,
+    env_kwargs: dict | None = None,
+    output_env_name: str | None = None,
+) -> Path:
+    results_root = Path(results_root) if results_root is not None else (ROOT / "results")
+    env_kwargs = env_kwargs or {}
+    output_env_name = output_env_name or env_name
+    run_dir = results_root / "runs" / output_env_name / method_name / f"seed_{seed}"
+    checkpoint = checkpoint_path or (run_dir / "best.ckpt")
+    ckpt = load_checkpoint(checkpoint)
     cfg = load_config(
         {
             "PROXY_PPO": "method_proxy_ppo.yaml",
@@ -29,30 +44,31 @@ def evaluate_run(env_name: str, method_name: str, seed: int, eval_episodes: int,
             "CONSERVATIVE_PROXY_PPO": "method_conservative_proxy.yaml",
         }[method_name]
     )
-    trainer = PPOTrainer(lambda: make_env(env_name, split="id"), PPOConfig.from_dict(cfg))
+    trainer = PPOTrainer(lambda: make_env(env_name, split="id", **env_kwargs), PPOConfig.from_dict(cfg))
     trainer.model.load_state_dict(ckpt["model_state"])
     trainer.model.eval()
     episode_rows = []
     trajectories = []
-    max_saved = 10
+    start = time.time()
     for split in ["id", "ood"]:
         for episode_idx in range(eval_episodes):
             eval_seed = seed * 1000 + episode_idx + (10000 if split == "ood" else 0)
             seed_everything(eval_seed)
-            env = make_env(env_name, split=split)
+            env = make_env(env_name, split=split, **env_kwargs)
             obs, _ = env.reset(seed=eval_seed)
             done = False
             proxy_return = 0.0
             final_info = {}
             while not done:
-                action = trainer.act(obs, deterministic=True)
+                action = trainer.act(obs, deterministic=deterministic)
                 obs, reward, terminated, truncated, info = env.step(action)
                 proxy_return += float(reward)
                 done = terminated or truncated
                 final_info = info
             summary = dict(final_info["episode_summary"])
             row = {
-                "env_name": env_name,
+                "env_name": output_env_name,
+                "base_env_name": env_name,
                 "method": method_name,
                 "seed": seed,
                 "split": split,
@@ -70,13 +86,16 @@ def evaluate_run(env_name: str, method_name: str, seed: int, eval_episodes: int,
                 "gems_collected": int(summary.get("gems_collected", 0)),
             }
             episode_rows.append(row)
-            if len(trajectories) < max_saved:
+            saved_in_split = sum(1 for record in trajectories if record["split"] == split)
+            if max_saved_per_split < 0 or saved_in_split < max_saved_per_split:
                 trajectories.append(
                     {
-                        "env_name": env_name,
+                        "env_name": output_env_name,
+                        "base_env_name": env_name,
                         "method": method_name,
                         "seed": seed,
                         "split": split,
+                        "deterministic": deterministic,
                         "summary": summary,
                         "context": env.monitor_context(),
                         "trajectory": env.trajectory,
@@ -86,11 +105,17 @@ def evaluate_run(env_name: str, method_name: str, seed: int, eval_episodes: int,
     with (run_dir / "trajectories.json").open("w", encoding="utf-8") as handle:
         json.dump(trajectories, handle)
     eval_summary = {
-        "env_name": env_name,
+        "env_name": output_env_name,
+        "base_env_name": env_name,
         "method": method_name,
         "seed": seed,
         "eval_episodes_per_split": eval_episodes,
         "episodes_total": len(episode_rows),
+        "deterministic": deterministic,
+        "saved_trajectories": len(trajectories),
+        "wall_clock_sec": time.time() - start,
+        "source_checkpoint": str(checkpoint),
+        "env_kwargs": env_kwargs,
     }
     write_json(run_dir / "eval_summary.json", eval_summary)
     append_inventory(results_root / "artifact_inventory.csv", run_dir / "episodes.csv.gz", "episode_metrics")
@@ -105,8 +130,21 @@ def main() -> None:
     parser.add_argument("--method", required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--eval-episodes", type=int, required=True)
+    parser.add_argument("--results-root")
+    parser.add_argument("--checkpoint-path")
+    parser.add_argument("--stochastic", action="store_true")
+    parser.add_argument("--max-saved-per-split", type=int, default=5)
     args = parser.parse_args()
-    run_dir = evaluate_run(args.env, args.method, args.seed, args.eval_episodes)
+    run_dir = evaluate_run(
+        args.env,
+        args.method,
+        args.seed,
+        args.eval_episodes,
+        results_root=Path(args.results_root) if args.results_root else None,
+        checkpoint_path=Path(args.checkpoint_path) if args.checkpoint_path else None,
+        deterministic=not args.stochastic,
+        max_saved_per_split=args.max_saved_per_split,
+    )
     print(json.dumps({"run_dir": str(run_dir)}))
 
 

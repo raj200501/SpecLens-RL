@@ -67,6 +67,7 @@ class BaseSymbolicEnv(gym.Env):
         self.np_random = np.random.default_rng(0)
         self.current_variant: LayoutVariant | None = None
         self.agent_pos: Position = (0, 0)
+        self.start_pos: Position = (0, 0)
         self.goal_pos: Position = (grid_size - 1, grid_size - 1)
         self.obstacles: List[Position] = []
         self.steps = 0
@@ -96,6 +97,7 @@ class BaseSymbolicEnv(gym.Env):
         self.np_random = np.random.default_rng(seed)
         self.current_variant = self._choose_variant(seed)
         self._reset_from_variant(self.current_variant)
+        self.start_pos = self.agent_pos
         obs = self._build_observation()
         info = {"env_name": self.name, "split": self.split, "variant_name": self.current_variant.name, "episode_summary": self.get_episode_summary()}
         return obs, info
@@ -172,6 +174,9 @@ class BaseSymbolicEnv(gym.Env):
     def monitor_context(self) -> Dict[str, object]:
         return {
             "goal_pos": list(self.goal_pos),
+            "start_pos": list(self.start_pos),
+            "grid_size": self.grid_size,
+            "max_steps": self.max_steps,
             "risky_positions": [],
             "split": self.split,
             "variant_name": self.current_variant.name if self.current_variant else "unknown",

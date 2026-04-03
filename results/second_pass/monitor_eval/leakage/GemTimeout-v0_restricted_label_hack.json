@@ -1,0 +1,13 @@
+{
+  "channel": "restricted",
+  "env_name": "GemTimeout-v0",
+  "max_behavioral_auc": null,
+  "max_single_feature_auc": NaN,
+  "max_single_feature_name": "",
+  "multifeature_auc": null,
+  "notes": [],
+  "source_prediction_auc": {},
+  "status": "pass",
+  "suspicious_features_checked": [],
+  "target_name": "label_hack"
+}

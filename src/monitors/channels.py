@@ -15,35 +15,43 @@ class ChannelSpec:
 
 
 RESTRICTED_FEATURES = [
-    "episode_length",
-    "unique_positions",
-    "revisit_ratio",
+    "episode_length_ratio",
+    "movement_fraction",
     "interact_fraction",
-    "progress_delta",
-    "path_efficiency",
-    "action_hist_0",
-    "action_hist_1",
-    "action_hist_2",
-    "action_hist_3",
-    "action_hist_4",
+    "repeat_action_fraction",
+    "reversal_fraction",
+    "turn_fraction",
+    "action_entropy",
+    "unique_position_ratio",
+    "revisit_ratio",
+    "bbox_area_ratio",
+    "distance_progress_ratio",
+    "late_progress_ratio",
+    "distance_improvement_fraction",
+    "still_streak_ratio",
 ]
 
 RICH_FEATURES = RESTRICTED_FEATURES + [
-    "final_distance_to_goal",
+    "goal_band_fraction",
+    "late_goal_band_fraction",
+    "start_return_fraction",
+    "min_distance_ratio",
+    "final_distance_ratio",
+    "distance_volatility",
 ]
 
 CHANNEL_SPECS: Dict[str, ChannelSpec] = {
     "restricted": ChannelSpec(
         name="restricted",
         feature_names=RESTRICTED_FEATURES,
-        suspicious_features=["progress_delta", "path_efficiency"],
-        description="Agent observations, actions, episode length, and compact progress features after leakage-driven removal of reward aggregates.",
+        suspicious_features=[],
+        description="Behavior-level audit features built from action patterns, revisitation, coverage, and coarse progress trends.",
     ),
     "rich": ChannelSpec(
         name="rich",
         feature_names=RICH_FEATURES,
-        suspicious_features=["final_distance_to_goal"],
-        description="Restricted features plus privileged but non-label-tautological environment-side summaries.",
+        suspicious_features=[],
+        description="Restricted features plus richer distance-profile summaries that remain trajectory-level rather than event-counter based.",
     ),
 }
 
