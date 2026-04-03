@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\begin{tabular}{lllllll}
+\toprule
+env & channel & model & ROC\_AUC\_hack & PR\_AUC\_hack & monitorability\_gap & leakage\_status \\
+\midrule
+ProxyFarming-v0 & restricted & logistic\_regression & -- & -- & -- & fail \\
+ProxyFarming-v0 & restricted & gradient\_boosting & -- & -- & -- & fail \\
+ProxyFarming-v0 & rich & logistic\_regression & -- & -- & -- & fail \\
+ProxyFarming-v0 & rich & gradient\_boosting & -- & -- & -- & fail \\
+SensorTamper-v0 & restricted & logistic\_regression & -- & -- & -- & fail \\
+SensorTamper-v0 & restricted & gradient\_boosting & -- & -- & -- & fail \\
+SensorTamper-v0 & rich & logistic\_regression & -- & -- & -- & fail \\
+SensorTamper-v0 & rich & gradient\_boosting & -- & -- & -- & fail \\
+GemTimeout-v0 & restricted & logistic\_regression & -- & -- & -- & degenerate \\
+GemTimeout-v0 & restricted & gradient\_boosting & -- & -- & -- & degenerate \\
+GemTimeout-v0 & rich & logistic\_regression & -- & -- & -- & degenerate \\
+GemTimeout-v0 & rich & gradient\_boosting & -- & -- & -- & degenerate \\
+\bottomrule
+\end{tabular}
+\caption{Monitor performance on hack detection.}
+\label{tab:monitor-results}
+\end{table}

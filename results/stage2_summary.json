@@ -1,0 +1,6 @@
+{
+  "profile": "PROFILE_FULL_SAFE",
+  "reason": "Stage 2 is intentionally not launched by default; enable only after Stage 1 artifacts are reviewed.",
+  "stage": "stage2",
+  "status": "skipped"
+}

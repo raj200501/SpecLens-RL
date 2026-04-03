@@ -1,0 +1,9 @@
+{
+  "env": "ProxyFarming-v0",
+  "method": "PROXY_PPO",
+  "profile": "PROFILE_FULL_SAFE",
+  "run_dir": "/Users/rajkashikar/SpecLens-RL/results/runs/ProxyFarming-v0/PROXY_PPO/seed_0",
+  "seed": 0,
+  "stage": "stage0",
+  "steps": 20000
+}

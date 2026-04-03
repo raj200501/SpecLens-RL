@@ -1,0 +1,13 @@
+env,channel,model,ROC_AUC_hack,PR_AUC_hack,monitorability_gap,leakage_status
+ProxyFarming-v0,restricted,logistic_regression,,,,fail
+ProxyFarming-v0,restricted,gradient_boosting,,,,fail
+ProxyFarming-v0,rich,logistic_regression,,,,fail
+ProxyFarming-v0,rich,gradient_boosting,,,,fail
+SensorTamper-v0,restricted,logistic_regression,,,,fail
+SensorTamper-v0,restricted,gradient_boosting,,,,fail
+SensorTamper-v0,rich,logistic_regression,,,,fail
+SensorTamper-v0,rich,gradient_boosting,,,,fail
+GemTimeout-v0,restricted,logistic_regression,,,,degenerate
+GemTimeout-v0,restricted,gradient_boosting,,,,degenerate
+GemTimeout-v0,rich,logistic_regression,,,,degenerate
+GemTimeout-v0,rich,gradient_boosting,,,,degenerate

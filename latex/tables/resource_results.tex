@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\begin{tabular}{llllll}
+\toprule
+env & method & seeds & step\_budget & wall\_clock & disk\_footprint \\
+\midrule
+GemTimeout-v0 & ORACLE\_TRUE\_PPO & 3 & 200000 & 115.274 & 1644135 \\
+GemTimeout-v0 & PROXY\_PPO & 3 & 200000 & 102.134 & 1642807 \\
+ProxyFarming-v0 & ORACLE\_TRUE\_PPO & 3 & 200000 & 123.737 & 1652736 \\
+ProxyFarming-v0 & PROXY\_PPO & 3 & 200000 & 124.544 & 1946492 \\
+SensorTamper-v0 & ORACLE\_TRUE\_PPO & 3 & 200000 & 107.346 & 1659230 \\
+SensorTamper-v0 & PROXY\_PPO & 3 & 200000 & 119.451 & 2018537 \\
+\bottomrule
+\end{tabular}
+\caption{Resource usage by run.}
+\label{tab:resource-results}
+\end{table}
