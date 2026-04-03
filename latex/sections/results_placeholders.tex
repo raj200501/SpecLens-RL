@@ -1,0 +1,7 @@
+\section{Results}
+Proxy-trained agents show clear specification failures in ProxyFarming-v0, SensorTamper-v0. The empirical picture is mixed in GemTimeout-v0. Monitor evaluations were limited because leakage diagnostics failed for ProxyFarming-v0, SensorTamper-v0 and monitor targets were degenerate for GemTimeout-v0.
+\IfFileExists{tables/main_specification_results.tex}{\input{tables/main_specification_results}}{\todoartifact{main specification table not yet generated}}
+\IfFileExists{tables/tampering_results.tex}{\input{tables/tampering_results}}{\todoartifact{tampering table not yet generated}}
+\IfFileExists{tables/monitor_results.tex}{\input{tables/monitor_results}}{\todoartifact{monitor table not yet generated}}
+\begin{figure}[t]\centering\IfFileExists{figures/proxy_vs_true_scatter.pdf}{\includegraphics[width=\columnwidth]{figures/proxy_vs_true_scatter.pdf}}{\fbox{\parbox{0.95\columnwidth}{\centering Artifact placeholder: proxy\_vs\_true\_scatter.pdf}}}\caption{Proxy versus true-score relationship by environment and method.}\label{fig:proxy-true}\end{figure}
+\begin{figure}[t]\centering\IfFileExists{figures/monitorability_gap.pdf}{\includegraphics[width=\columnwidth]{figures/monitorability_gap.pdf}}{\fbox{\parbox{0.95\columnwidth}{\centering Artifact placeholder: monitorability\_gap.pdf}}}\caption{Restricted versus rich monitor performance.}\label{fig:monitorability-gap}\end{figure}

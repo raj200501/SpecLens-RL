@@ -1,0 +1,17 @@
+\section{Conclusion}
+We presented \framework, a compact framework for diagnosing specification
+failures in reinforcement learning. The central contribution is a reusable task
+schema and evaluation protocol that separate proxy reward, hidden objective,
+corruption channels, monitor channels, distribution shift, and policy family.
+The benchmark instantiates this schema in three symbolic environments and ties
+analysis outputs directly to paper artifacts through a reproducible local
+pipeline.
+
+The main open empirical question is not whether one method wins the benchmark,
+but whether the framework yields stable, interpretable measurements of
+specification gap, tampering, monitorability, and shift sensitivity across
+resource-safe runs. As results accumulate, the paper can be updated by inserting
+generated tables and figures rather than rewriting the framing. That is the
+intended use of the repository: a disciplined scaffold for honest small-scale
+safety experiments.
+\IfFileExists{sections/generated_conclusion_results.tex}{\input{sections/generated_conclusion_results}}{}

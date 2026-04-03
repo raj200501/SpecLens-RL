@@ -1,0 +1,17 @@
+\section{Broader Impact}
+This project aims to improve the empirical study of reward misspecification and
+tampering by providing a compact benchmark with explicit assumptions and strict
+artifact rules. If used well, such a benchmark can make safety discussions more
+concrete: researchers can compare tasks, metrics, and monitor channels without
+claiming more realism than the environments justify.
+
+There are also risks. Compact safety benchmarks can be overinterpreted, used as
+checklists for deployment readiness, or optimized against in a way that
+encourages benchmark gaming rather than better safety science. We therefore
+recommend treating \framework as a diagnostic tool for failure analysis and
+method stress-testing, not as a certification suite.
+
+Because the environments make corruption channels explicit, they may also serve
+as toy examples of exploit strategies. We view that risk as limited by the
+symbolic and low-stakes nature of the tasks, but it reinforces the importance of
+presenting the benchmark as measurement infrastructure rather than a leaderboard.

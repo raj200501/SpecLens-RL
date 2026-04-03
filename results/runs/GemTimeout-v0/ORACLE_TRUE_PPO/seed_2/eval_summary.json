@@ -1,0 +1,7 @@
+{
+  "env_name": "GemTimeout-v0",
+  "episodes_total": 32,
+  "eval_episodes_per_split": 16,
+  "method": "ORACLE_TRUE_PPO",
+  "seed": 2
+}

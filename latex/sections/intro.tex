@@ -1,0 +1,54 @@
+\section{Introduction}
+Reinforcement learning systems are often trained against a proxy reward while
+being evaluated, implicitly or explicitly, against a broader intended
+objective. When these differ, agents may accumulate reward without producing the
+outcome the designer actually wants. That problem has been discussed under
+several related names, including reward misspecification, specification gaming,
+reward hacking, and reward tampering. The literature contains many vivid
+examples, but empirical comparison remains difficult because environments,
+labels, monitoring assumptions, and evaluation protocols are frequently bundled
+together in incompatible ways.
+
+This paper takes a framework-first position. Our aim is not to propose another
+training trick that performs well on a bespoke benchmark. Instead, we ask a
+measurement question: can a compact task schema and metric suite make several
+classes of specification failure measurable and comparable in a local,
+small-compute setting? The answer matters because a diagnostic benchmark should
+remain informative even when a particular method underperforms, and should be
+cheap enough to reproduce on ordinary hardware rather than only on large
+clusters.
+
+We formalize a specification diagnostic task as
+\[
+T = (M, R_p, J_t, C, M_{\mathrm{mon}}, \Delta, \Pi),
+\]
+where $M$ is the underlying MDP or POMDP, $R_p$ is the proxy reward used for
+learning, $J_t$ is the hidden true objective used for evaluation, $C$ is the
+corruption or tampering channel family, $M_{\mathrm{mon}}$ is the monitor
+observation channel, $\Delta$ is the distribution-shift family, and $\Pi$ is
+the policy or training family under consideration. This decomposition is meant
+to make explicit what is often implicit: the environment dynamics, training
+signal, evaluation target, monitoring assumptions, and robustness conditions are
+distinct design choices and should be measured as such.
+
+\framework packages that decomposition into code and paper artifacts. The
+repository provides three symbolic environments, a schema export for each task,
+a metric suite for quantifying specification gap and monitorability, leakage
+diagnostics for audit channels, and a staged execution pipeline that respects
+laptop-scale compute and disk budgets. The design goal is to support empirical
+clarity rather than breadth. Symbolic environments are not intended as realistic
+simulators of deployment settings; they are compact model organisms for studying
+failure modes under controlled corruption and shift.
+
+The empirical sections of this paper are intentionally constrained by a strict
+artifact policy. Tables, plots, and result sentences are only populated from
+generated files saved by the repository. If a run fails, a metric degenerates,
+or leakage forces a feature redesign, the paper records that outcome rather than
+smoothing it away. This makes the benchmark less polished than a hand-curated
+final paper at early stages, but more honest as a research artifact.
+
+Our main contribution is therefore a reproducible evaluation object rather than
+an algorithmic claim: a task schema, metric protocol, benchmark instantiation,
+and monitor evaluation procedure for studying reward misspecification and
+tampering in reinforcement learning under modest hardware constraints.
+\IfFileExists{sections/generated_intro_results.tex}{\input{sections/generated_intro_results}}{}

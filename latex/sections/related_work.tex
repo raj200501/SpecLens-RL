@@ -1,0 +1,54 @@
+\section{Related Work}
+Work on AI safety in reinforcement learning has long emphasized the gap between
+an implemented reward signal and the objective a designer actually intends.
+\citet{amodei2016concrete} catalogued several concrete failure modes, including
+negative side effects, reward hacking, and scalable oversight. Subsequent simple
+environment suites such as AI Safety Gridworlds and related toy domains made
+these problems easier to study in controlled settings
+\citep{leike2017ai,dennis2019specifying}. Those environments established the
+value of small model organisms for safety research, especially when direct
+deployment-scale experimentation is infeasible.
+
+More recent work has sharpened the conceptual vocabulary around specification
+failure. Analyses of reward hacking and reward tampering distinguish between
+proxy exploitation without explicit corruption and cases where the agent can
+interfere with the channel that determines reward
+\citep{everitt2021reward,pan2022reward,weng2024specification}. That distinction
+matters for evaluation: a benchmark that only measures task success can miss
+policies that pursue proxy reward through channel manipulation, while a
+benchmark that only measures corruption events may miss broader alignment
+failures that do not involve direct tampering.
+
+Another relevant line of work concerns the limits of reward learning and online
+specification. When reward models or inferred objectives are updated during
+training, agents may still exploit misspecification, feedback loops, or weak
+oversight \citep{skalse2022pitfalls}. This motivates separating the training
+signal from the evaluation objective, even in synthetic tasks, so that
+diagnostic results do not collapse into the tautology that agents optimize the
+same function used to judge them.
+
+Procedural generation and distribution shift have also become central to RL
+benchmark design. Environments that vary layouts, distractors, and local task
+structure can distinguish memorization from robust strategy learning
+\citep{cobbe2020leveraging}. In the present work, distribution shift is not an
+afterthought but an explicit component of the task tuple: a specification
+diagnostic benchmark should test not only whether proxy reward is exploitable in
+distribution, but also whether such exploitation persists or worsens when the
+task configuration changes.
+
+Finally, a growing literature studies external monitors, anomaly detectors, and
+other oversight mechanisms for identifying failures from partial behavioral
+traces. That literature motivates our monitor-channel formulation, but it also
+raises a design hazard: monitor tasks are often accidentally trivialized by
+label leakage. We therefore treat the audit view itself as an experimental
+object and require explicit leakage checks before reporting monitorability
+results. This differs from work that treats monitor features as fixed side
+information and focuses primarily on detector architecture.
+
+The closest prior work is thus not a single benchmark or algorithm, but the
+combination of safety toy environments, reward tampering analyses, procedural
+generalization benchmarks, and oversight research. \framework contributes a
+compact synthesis oriented around measurement discipline: a schema that separates
+the relevant objects, a metric suite that quantifies several failure modes
+together, and a local-first pipeline that ties the paper directly to saved
+artifacts.

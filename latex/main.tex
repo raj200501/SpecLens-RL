@@ -1,0 +1,58 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage[review]{aaai26}
+\usepackage{times}
+\usepackage{helvet}
+\usepackage{courier}
+\usepackage[hyphens]{url}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{microtype}
+\usepackage{multirow}
+\usepackage{xcolor}
+
+\newcommand{\framework}{SpecLens-RL}
+\newcommand{\todoartifact}[1]{\textcolor{red}{[Artifact TODO: #1]}}
+
+\title{\framework: A Compact Framework for Diagnosing Specification Failures in Reinforcement Learning}
+
+\author{
+Anonymous Authors
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We introduce \framework, a framework-first benchmark and evaluation protocol
+for diagnosing specification failures in reinforcement learning at laptop scale.
+The core object is not a new optimization method, but a task schema that
+separates proxy reward, hidden true objective, corruption channels, monitor
+channels, distribution shift, and policy family. We instantiate this schema in
+three symbolic environments designed to surface proxy gaming, explicit reward
+tampering, monitorability breakdown, and out-of-distribution failure under
+small-compute constraints. The repository packages a metric suite, leakage
+diagnostics for monitor channels, reproducible execution stages, and artifact
+generation rules that prevent unsupported claims. Experimental sections in this
+draft are populated only from saved outputs; where results are not yet
+generated, we leave structured placeholders rather than speculative claims.
+\IfFileExists{sections/generated_abstract_results.tex}{\input{sections/generated_abstract_results}}{}
+\end{abstract}
+
+\input{sections/intro}
+\input{sections/related_work}
+\input{sections/framework}
+\input{sections/metrics}
+\input{sections/method_overview}
+\input{sections/experiments_placeholders}
+\input{sections/results_placeholders}
+\input{sections/limitations}
+\input{sections/broader_impact}
+\input{sections/conclusion}
+
+\bibliographystyle{aaai26}
+\bibliography{references_seed}
+
+\end{document}
