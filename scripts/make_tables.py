@@ -13,6 +13,7 @@ from src.analysis.estimators import summarize_main_metrics, tampering_metrics, t
 from src.analysis.tables import (
     dataframe_to_table,
     environment_main_table,
+    environment_summary_compact_table,
     environment_summary_table,
     main_results_compact_table,
     sensortamper_monitor_table,
@@ -34,6 +35,7 @@ def build_tables(
     latex_tables = latex_root / "tables"
     environment_summary_table(["ProxyFarming-v0", "SensorTamper-v0", "GemTimeout-v0"], latex_tables / "environment_summary.tex")
     environment_main_table(latex_tables / "environment_main.tex")
+    environment_summary_compact_table(latex_tables / "environment_summary_compact.tex")
     episodes = aggregate_episode_metrics(results_root)
     run_frames = [aggregate_run_summaries(root) for root in resource_results_roots]
     run_frames = [frame for frame in run_frames if not frame.empty]

@@ -1,0 +1,22 @@
+SpecLens-RL final paper snapshot assembly
+
+The flattened final.tex was assembled from:
+
+- section `intro` from `latex/sections/intro.tex`
+- section `related_work` from `latex/sections/related_work.tex`
+- section `framework` from `latex/sections/framework.tex`
+- section `metrics` from `latex/sections/metrics.tex`
+- section `method_overview` from `latex/sections/method_overview.tex`
+- section `experiments` from `latex/sections/experiments.tex`
+- section `results` from `latex/sections/results.tex`
+- section `limitations` from `latex/sections/limitations.tex`
+- section `broader_impact` from `latex/sections/broader_impact.tex`
+- section `conclusion` from `latex/sections/conclusion.tex`
+
+Table inputs were expanded inline from:
+- latex/tables/environment_summary_compact.tex
+- latex/tables/main_results_compact.tex
+- latex/tables/sensortamper_monitor.tex
+
+The bibliography remains external as `latex/references_seed.bib`, which is allowed by the AAAI source-submission rules.
+The flattened `final.tex` uses the official `aaai2026` submission package and local `aaai2026.bst` bibliography style.

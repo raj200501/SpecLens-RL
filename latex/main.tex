@@ -1,26 +1,28 @@
 \documentclass[10pt,twocolumn,letterpaper]{article}
 
-\usepackage[review]{aaai26}
+\usepackage[submission]{aaai2026}
 \usepackage{times}
 \usepackage{helvet}
 \usepackage{courier}
 \usepackage[hyphens]{url}
+\urlstyle{rm}
+\def\UrlFont{\rm}
 \usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{caption}
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage{microtype}
 \usepackage{multirow}
-\usepackage{xcolor}
 
 \newcommand{\framework}{SpecLens-RL}
-\newcommand{\todoartifact}[1]{\textcolor{red}{[Artifact TODO: #1]}}
 
 \title{\framework: A Compact Framework for Diagnosing Specification Failures in Reinforcement Learning}
 
 \author{
 Anonymous Authors
 }
+\affiliations{}
 
 \begin{document}
 \maketitle
@@ -46,13 +48,12 @@ feasible but narrow, with valid evidence concentrated in SensorTamper-v0.
 \input{sections/framework}
 \input{sections/metrics}
 \input{sections/method_overview}
-\input{sections/experiments_placeholders}
-\input{sections/results_placeholders}
+\input{sections/experiments}
+\input{sections/results}
 \input{sections/limitations}
 \input{sections/broader_impact}
 \input{sections/conclusion}
 
-\bibliographystyle{aaai26}
 \bibliography{references_seed}
 
 \end{document}

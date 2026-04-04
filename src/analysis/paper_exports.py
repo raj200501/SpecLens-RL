@@ -88,7 +88,7 @@ def write_experiment_section(results_root: str | Path, latex_root: str | Path) -
     latex_root = Path(latex_root)
     latex_sections = latex_root / "sections"
     resource_df = _load_csv(results_dir / "aggregated_resource_results.csv")
-    table_line = _table_input_line(latex_root, "environment_main", "environment_summary")
+    table_line = _table_input_line(latex_root, "environment_summary_compact", "environment_main")
 
     if resource_df.empty:
         lines = [
@@ -101,7 +101,9 @@ def write_experiment_section(results_root: str | Path, latex_root: str | Path) -
         ]
         if table_line:
             lines.insert(-1, table_line)
-        write_text(latex_sections / "experiments_placeholders.tex", "\n".join(lines))
+        content = "\n".join(lines)
+        write_text(latex_sections / "experiments.tex", content)
+        write_text(latex_sections / "experiments_placeholders.tex", content)
         return
 
     if not _has_full_resource_matrix(resource_df):
@@ -116,7 +118,9 @@ def write_experiment_section(results_root: str | Path, latex_root: str | Path) -
         ]
         if table_line:
             lines.insert(-1, table_line)
-        write_text(latex_sections / "experiments_placeholders.tex", "\n".join(lines))
+        content = "\n".join(lines)
+        write_text(latex_sections / "experiments.tex", content)
+        write_text(latex_sections / "experiments_placeholders.tex", content)
         return
 
     proxy_steps = int(
@@ -152,14 +156,16 @@ def write_experiment_section(results_root: str | Path, latex_root: str | Path) -
             "This avoids the first-pass failure mode in which mixing proxy and oracle rollouts made monitor prediction method-trivial."
         ),
         (
-            "Table~\\ref{tab:env-main} summarizes the task instantiations used in the paper. "
+            "Table~\\ref{tab:env-summary-compact} summarizes the task instantiations used in the paper. "
             "Full resource accounting and threshold-sensitivity artifacts are kept in the repository outputs but omitted from the main body for space."
         ),
         "",
     ]
     if table_line:
         lines.insert(-1, table_line)
-    write_text(latex_sections / "experiments_placeholders.tex", "\n".join(lines))
+    content = "\n".join(lines)
+    write_text(latex_sections / "experiments.tex", content)
+    write_text(latex_sections / "experiments_placeholders.tex", content)
 
 
 def write_results_section(results_root: str | Path, latex_root: str | Path) -> None:
@@ -178,7 +184,9 @@ def write_results_section(results_root: str | Path, latex_root: str | Path) -> N
             ),
             "",
         ]
-        write_text(latex_sections / "results_placeholders.tex", "\n".join(lines))
+        content = "\n".join(lines)
+        write_text(latex_sections / "results.tex", content)
+        write_text(latex_sections / "results_placeholders.tex", content)
         write_text(latex_sections / "generated_abstract_results.tex", make_abstract_results_sentence(main_df, monitor_df))
         write_text(latex_sections / "generated_intro_results.tex", make_intro_results_sentence(main_df, monitor_df))
         write_text(latex_sections / "generated_conclusion_results.tex", make_conclusion_results_sentence(main_df, monitor_df))
@@ -194,7 +202,9 @@ def write_results_section(results_root: str | Path, latex_root: str | Path) -> N
             ),
             "",
         ]
-        write_text(latex_sections / "results_placeholders.tex", "\n".join(lines))
+        content = "\n".join(lines)
+        write_text(latex_sections / "results.tex", content)
+        write_text(latex_sections / "results_placeholders.tex", content)
         write_text(latex_sections / "generated_abstract_results.tex", make_abstract_results_sentence(main_df, monitor_df))
         write_text(latex_sections / "generated_intro_results.tex", make_intro_results_sentence(main_df, monitor_df))
         write_text(latex_sections / "generated_conclusion_results.tex", make_conclusion_results_sentence(main_df, monitor_df))
@@ -241,7 +251,6 @@ def write_results_section(results_root: str | Path, latex_root: str | Path) -> N
             f"while the oracle reaches {_fmt(oracle_gt['true_score_ID'])} with zero hack incidence. "
             "Across proxy-trained policies, the proxy--true correlation is non-positive in every environment, which is exactly the kind of measurement signal the framework is meant to expose."
         ),
-        _table_input_line(latex_root, "main_results_compact"),
         r"\paragraph{Tampering is explicitly measurable.}",
         (
             "SensorTamper does more than show a generic specification gap: it isolates a concrete corruption channel. "
@@ -292,7 +301,9 @@ def write_results_section(results_root: str | Path, latex_root: str | Path) -> N
         limit_index = lines.index(r"\paragraph{Limitations of the current evidence.}")
         lines[limit_index:limit_index] = [monitor_table]
     lines = [line for line in lines if line is not None]
-    write_text(latex_sections / "results_placeholders.tex", "\n".join(lines))
+    content = "\n".join(lines)
+    write_text(latex_sections / "results.tex", content)
+    write_text(latex_sections / "results_placeholders.tex", content)
 
     summary_sentence = make_abstract_results_sentence(main_df, monitor_df)
     write_text(latex_sections / "generated_abstract_results.tex", summary_sentence)

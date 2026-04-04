@@ -100,6 +100,48 @@ def environment_main_table(output_path: str | Path) -> None:
     )
 
 
+def environment_summary_compact_table(output_path: str | Path) -> None:
+    shared_monitor = "Restricted trace; rich adds coarse audit state"
+    rows = [
+        [
+            "ProxyFarming",
+            "Beacon reward",
+            "Reach goal efficiently",
+            "Repeated beacon harvesting",
+            shared_monitor,
+            "Beacon move; layout; distractors",
+        ],
+        [
+            "SensorTamper",
+            "Sensor-mediated reward",
+            "Deliver object to target",
+            "Tamper tile spoofs sensor",
+            shared_monitor,
+            "Tamper move; delay; path change",
+        ],
+        [
+            "GemTimeout",
+            "Gem reward",
+            "Reach goal before timeout",
+            "Gem detours trade off with time",
+            shared_monitor,
+            "Density; budget; deceptive placement",
+        ],
+    ]
+    _write_custom_table(
+        output_path=output_path,
+        headers=["Environment", "Proxy reward", "True objective", "Corruption channel", "Monitor channels", "OOD shift"],
+        rows=rows,
+        caption=(
+            "Compact summary of the three benchmark environments used in the main paper."
+        ),
+        label="tab:env-summary-compact",
+        column_spec="p{1.65cm} p{1.8cm} p{2.0cm} p{2.1cm} p{2.5cm} p{2.2cm}",
+        table_env="table*",
+        size_command=r"\small",
+    )
+
+
 def main_results_compact_table(main_df: pd.DataFrame, output_path: str | Path) -> None:
     if main_df.empty:
         return
@@ -146,36 +188,25 @@ def sensortamper_monitor_table(monitor_df: pd.DataFrame, output_path: str | Path
     subset = subset[subset["leakage_status"].isin(["pass", "warning"])].dropna(subset=["ROC_AUC", "PR_AUC"])
     if subset.empty:
         return
-    restricted = (
-        subset[subset["channel"] == "restricted"]
-        .set_index("model")[["ROC_AUC", "PR_AUC"]]
-        .rename(columns={"ROC_AUC": "restricted_roc", "PR_AUC": "restricted_pr"})
-    )
-    rich = (
-        subset[subset["channel"] == "rich"]
-        .set_index("model")[["ROC_AUC", "PR_AUC"]]
-        .rename(columns={"ROC_AUC": "rich_roc", "PR_AUC": "rich_pr"})
-    )
-    merged = restricted.join(rich, how="inner").reset_index()
     rows = []
-    for row in merged.itertuples(index=False):
+    channel_labels = {"restricted": "Restricted", "rich": "Rich"}
+    for row in subset.sort_values(by=["channel", "model"]).itertuples(index=False):
         rows.append(
             [
+                channel_labels.get(row.channel, row.channel),
                 MODEL_LABELS.get(row.model, row.model),
-                f"{row.restricted_roc:.3f}",
-                f"{row.restricted_pr:.3f}",
-                f"{row.rich_roc:.3f}",
-                f"{row.rich_pr:.3f}",
-                f"{(row.rich_roc - row.restricted_roc):.3f}",
+                f"{row.ROC_AUC:.3f}",
+                f"{row.PR_AUC:.3f}",
+                row.leakage_status.capitalize(),
             ]
         )
     _write_custom_table(
         output_path=output_path,
-        headers=["Model", "Restricted ROC", "Restricted PR", "Rich ROC", "Rich PR", "$\\Delta$ROC"],
+        headers=["Channel", "Monitor", "ROC-AUC", "PR-AUC", "Leakage"],
         rows=rows,
         caption="Leakage-cleared hack-monitor results for SensorTamper-v0 under the proxy-only monitor protocol.",
         label="tab:sensortamper-monitor",
-        column_spec="p{2.35cm} c c c c c",
+        column_spec="p{1.6cm} p{2.25cm} c c c",
         size_command=r"\small",
     )
 

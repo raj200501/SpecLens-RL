@@ -22,3 +22,14 @@
   overview, the compact main-results panel, and the SensorTamper monitor figure.
 - Keep appendix or repository-only artifacts out of the core narrative unless a
   reviewer-facing revision specifically benefits from adding them.
+
+## Appendix / Supplement Plan
+
+- A lightweight appendix scaffold now lives in `latex/appendix.tex`.
+- The intended appendix-only overflow is:
+  - threshold robustness,
+  - resource/runtime summaries,
+  - extra monitor diagnostics,
+  - leakage case breakdowns from `results/leakage/`.
+- Keep the main paper self-sufficient; use the appendix only for material that
+  would otherwise dilute the core framework argument.

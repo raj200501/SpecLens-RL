@@ -22,3 +22,9 @@ latex/figures/*
 !latex/figures/.gitkeep
 latex/tables/*
 !latex/tables/.gitkeep
+latex/*.aux
+latex/*.bbl
+latex/*.blg
+latex/*.log
+latex/*.xdv
+!latex/final_build.log
