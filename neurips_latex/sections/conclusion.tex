@@ -1,0 +1,15 @@
+\section{Conclusion}
+We presented \framework, a compact framework for diagnosing specification
+failures in reinforcement learning. The core contribution is a reusable task
+tuple and evaluation protocol that separate proxy reward, hidden objective,
+corruption channels, monitor channels, distribution shift, and policy family.
+The benchmark instantiates that tuple in three symbolic environments and ties
+analysis outputs directly to paper artifacts through a reproducible local
+pipeline.
+
+The strongest empirical claim is conservative and useful. Across three symbolic
+tasks, \framework exposes large specification gaps and explicit tampering risk,
+while leakage-cleared monitor evidence is feasible but narrow, with accepted
+results concentrated in SensorTamper-v0. For workshop purposes, that is a
+useful methodological message: benchmark leakage and label degeneracy are not
+side issues, but part of what a trustworthy diagnostic benchmark must surface.

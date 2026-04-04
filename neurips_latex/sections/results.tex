@@ -1,0 +1,62 @@
+\section{Results}
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/main_results_panel.pdf}
+\caption{Main benchmark outcomes. Across all three environments, proxy-trained
+policies underperform oracle policies on true score. OOD behavior is mixed
+rather than monotone: some shifts reduce exploit frequency while leaving a
+large true-objective gap.}
+\label{fig:main-results}
+\end{figure*}
+
+\paragraph{Specification gaps are measurable across the suite.}
+Figure~\ref{fig:main-results} and Table~\ref{tab:main-results-compact} show
+large and interpretable gaps between proxy optimization and the hidden
+objective. In ProxyFarming, Proxy PPO reaches ID true score $-1.950$ with hack
+incidence $1.000$, while Oracle True PPO reaches $0.992$ with zero hack
+incidence. SensorTamper is sharper still: Proxy PPO reaches ID true score
+$-3.346$ with hack incidence $0.833$, versus $1.000$ and zero for the oracle.
+After recalibration, GemTimeout becomes a complementary delayed-cost case:
+Proxy PPO reaches ID true score $-0.153$ with hack incidence $1.000$, while the
+oracle reaches $1.000$ with zero hack incidence. Across proxy-trained policies,
+proxy--true correlation is non-positive in every environment.
+
+\input{tables/main_results_compact}
+
+\paragraph{Tampering is explicitly measurable.}
+SensorTamper does more than show generic proxy failure: it isolates a concrete
+corruption channel. The proxy policy uses the tamper mechanism in $0.417$ of
+evaluation episodes, whereas the oracle never tampers. Tampered proxy
+trajectories are associated with a true-score delta of $-4.382$ relative to
+untampered proxy trajectories, showing that the corruption channel is
+behaviorally active rather than a dormant benchmark feature.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/sensortamper_monitorability.pdf}
+\caption{Leakage-cleared hack-monitor results for SensorTamper-v0. Valid
+monitor evidence exists, but the gain from the richer audit channel is modest
+rather than dramatic.}
+\label{fig:sensortamper-monitor}
+\end{figure}
+
+\paragraph{Leakage-aware monitor evaluation matters.}
+Under the stricter second-pass protocol, valid monitor evidence is concentrated
+in SensorTamper-v0. A restricted logistic-regression monitor reaches ROC-AUC
+$0.936$ and PR-AUC $0.962$; the corresponding rich-channel model reaches
+$0.964$ and $0.986$. That gain is real but small, which is scientifically
+useful: the task is not trivialized, yet richer audit information helps. By
+contrast, ProxyFarming and GemTimeout remain degenerate under the proxy-only ID
+monitor protocol. That negative result is part of the paper's argument rather
+than an exception to hide: monitorability evaluation can easily look stronger
+than it is unless leakage and label degeneracy are treated as first-class
+diagnostics.
+
+\input{tables/sensortamper_monitor}
+
+\paragraph{Why this matters for a workshop audience.}
+The benchmark's value is not that it solves monitoring. It is that it makes a
+failure mode visible: naive monitor evaluation can collapse under leakage or
+label structure even in small symbolic environments. \framework therefore
+supports two useful diagnoses at once: it measures proxy and tampering failures,
+and it exposes when a monitoring story is not yet trustworthy.

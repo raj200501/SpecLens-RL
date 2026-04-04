@@ -1,0 +1,17 @@
+\begin{table*}[t]
+\centering
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{1.8cm} p{2.35cm} p{2.3cm} p{2.35cm} p{3.2cm} p{2.6cm}}
+\toprule
+Environment & Proxy reward & True objective & Corruption channel & Monitor channels & OOD shift \\
+\midrule
+ProxyFarming & Beacon reward & Reach goal efficiently & Repeated beacon harvest & Restricted trace; rich audit summaries & Beacon move; layout; distractors \\
+SensorTamper & Sensor-mediated reward & Deliver object to target & Tamper tile spoofs sensor & Restricted trace; rich audit summaries & Tamper move; delay; path change \\
+GemTimeout & Gem reward & Reach goal before timeout & Gem detours trade off time & Restricted trace; rich audit summaries & Density; budget; deceptive placement \\
+\bottomrule
+\end{tabular}
+}
+\caption{Compact summary of the three benchmark environments used in the main paper.}
+\label{tab:env-summary-compact}
+\end{table*}

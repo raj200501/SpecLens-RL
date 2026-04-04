@@ -1,0 +1,52 @@
+\documentclass{article}
+
+\usepackage[dblblindworkshop]{neurips_2026}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+\newcommand{\framework}{SpecLens-RL}
+
+\title{\framework: A Compact Framework for Diagnosing Specification Failures in Reinforcement Learning}
+\workshoptitle{NeurIPS 2026 Workshop Submission (Target Workshop TBD)}
+\author{Anonymous Authors}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present \framework, a compact benchmark and evaluation protocol for diagnosing
+specification failures in reinforcement learning. The core contribution is not a
+new optimization method, but a task tuple that separates proxy reward, hidden
+true objective, corruption channels, monitor channels, distribution shift, and
+policy family. We instantiate this tuple in three symbolic environments that
+surface proxy gaming, explicit tampering, delayed-cost overoptimization, and
+monitorability failures under laptop-scale compute budgets. The package
+includes leakage-aware monitor evaluation and strict artifact rules that tie
+claims directly to saved outputs. Empirically, \framework exposes large
+proxy--true objective gaps and explicit tampering risk across the benchmark,
+while leakage-cleared monitor evidence is feasible but narrow, with accepted
+results concentrated in SensorTamper-v0.
+\end{abstract}
+
+\input{sections/intro}
+\input{sections/related_work}
+\input{sections/framework}
+\input{sections/experiments}
+\input{sections/results}
+\input{sections/limitations}
+\input{sections/conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

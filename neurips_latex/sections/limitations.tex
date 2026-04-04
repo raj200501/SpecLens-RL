@@ -1,0 +1,19 @@
+\section{Limitations}
+\framework is a measurement benchmark, not a realistic deployment simulator.
+The environments are symbolic model organisms and cannot support strong claims
+about frontier-scale systems. Their value lies in clarity and control: they
+make proxy exploitation, tampering, and monitor leakage easy to instrument, but
+they omit many complexities of real-world embodied or language-based settings.
+
+Monitorability claims in particular should be interpreted cautiously. A monitor
+that performs well on one symbolic environment with carefully screened features
+does not imply a practical oversight system for deployment, and a poor monitor
+result may reflect a deliberately restricted audit channel rather than a broad
+impossibility result.
+
+The benchmark also relies on manually designed hidden objectives and corruption
+channels. That is useful for diagnosis, but it means the suite emphasizes the
+failure modes the benchmark author chose to instantiate. Future work should be
+judged not only by whether it enlarges the suite, but by whether it preserves
+the explicit task tuple, artifact discipline, and leakage-aware evaluation
+protocol introduced here.

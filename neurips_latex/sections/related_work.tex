@@ -1,0 +1,35 @@
+\section{Related Work}
+Work on AI safety in reinforcement learning has long emphasized the gap between
+an implemented reward signal and the objective a designer actually intends.
+\citet{amodei2016concrete} catalogued concrete failure modes including reward
+hacking and scalable oversight, while AI Safety Gridworlds demonstrated the
+value of compact environments for studying such failures under controlled
+conditions \citep{leike2017ai}.
+
+Later work sharpened the distinction between broad reward hacking and explicit
+reward tampering. Everitt et al.\ analyze tampering incentives with causal
+influence diagrams \citep{everitt2021reward}, while Skalse et al.\ characterize
+reward hacking as divergence between proxy and true objectives rather than a
+grab-bag of anecdotes \citep{skalse2022rewardhacking}. That distinction is
+important for benchmark design: a task can show severe proxy failure without an
+explicit tamper channel, and explicit tampering in turn can create behaviors
+that task-success metrics alone do not capture.
+
+Another relevant thread studies the limits of updating reward functions online.
+Even when the reward process is itself adaptive, agents can manipulate weak
+oversight or the reward-learning loop \citep{armstrong2020pitfalls}. This
+motivates our explicit separation between the reward used for optimization and
+the hidden objective used for evaluation.
+
+Procedural generalization work likewise matters here. Layout and nuisance
+variation can distinguish brittle reward exploitation from more robust
+strategies \citep{cobbe2020leveraging}. In \framework, shift is therefore part
+of the task definition rather than an optional stress test. The benchmark asks
+not only whether proxy gaming occurs, but how it changes under symbolic OOD
+perturbations.
+
+Our contribution is closest to the intersection of these threads: small
+model-organism safety environments, formal treatments of reward hacking and
+tampering, and benchmark design for robustness. \framework contributes a
+compact synthesis centered on explicit task structure, metric discipline, and
+leakage-aware monitoring rather than a new optimization technique.

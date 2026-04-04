@@ -1,0 +1,31 @@
+SpecLens-RL NeurIPS workshop final paper snapshot
+
+The flattened `final.tex` was assembled conceptually from:
+
+- `neurips_latex/sections/intro.tex`
+- `neurips_latex/sections/related_work.tex`
+- `neurips_latex/sections/framework.tex`
+- `neurips_latex/sections/experiments.tex`
+- `neurips_latex/sections/results.tex`
+- `neurips_latex/sections/limitations.tex`
+- `neurips_latex/sections/conclusion.tex`
+
+Embedded table sources:
+
+- `neurips_latex/tables/environment_summary_compact.tex`
+- `neurips_latex/tables/main_results_compact.tex`
+- `neurips_latex/tables/sensortamper_monitor.tex`
+
+Referenced figure assets:
+
+- `neurips_latex/figures/framework_overview.pdf`
+- `neurips_latex/figures/main_results_panel.pdf`
+- `neurips_latex/figures/sensortamper_monitorability.pdf`
+
+Bibliography source:
+
+- `neurips_latex/references.bib`
+
+Style source:
+
+- `neurips_latex/neurips_2026.sty`

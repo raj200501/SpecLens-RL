@@ -1,0 +1,47 @@
+\section{Introduction}
+Reinforcement learning agents are usually optimized against a proxy reward while
+being judged, implicitly or explicitly, against a broader intended objective.
+When those diverge, agents can accumulate reward without producing the outcome
+the designer actually wants. That failure pattern appears under several related
+labels, including reward misspecification, specification gaming, reward
+hacking, and reward tampering, but empirical comparison is still difficult
+because environments, labels, monitoring assumptions, and evaluation protocols
+are often bundled together in incompatible ways.
+
+\framework takes a diagnosis-first position. The aim is not to introduce a new
+RL algorithm, but to make specification failures measurable and comparable in a
+small, reproducible setting. A useful benchmark should still teach us
+something when a method underperforms, and it should be cheap enough to run on
+ordinary hardware rather than only on a cluster. Those constraints matter for
+safety evaluation because they encourage explicit task definitions, inspectable
+labels, and conservative claims.
+
+We formalize a specification-diagnostic task as
+\[
+T = (M, R_p, J_t, C, M_{\mathrm{mon}}, \Delta, \Pi),
+\]
+where $M$ is the underlying MDP or POMDP, $R_p$ is the proxy reward used for
+learning, $J_t$ is the hidden true objective used for evaluation, $C$ is the
+corruption or tampering channel family, $M_{\mathrm{mon}}$ is the monitor
+observation channel, $\Delta$ is the distribution-shift family, and $\Pi$ is
+the policy or training family considered. The point of the tuple is to make
+explicit what is often left implicit: environment dynamics, optimization
+signals, labels, monitoring assumptions, and robustness conditions are separate
+design choices and should be measured as such.
+
+The current repository instantiates that tuple in three symbolic environments,
+ships a schema export for each task, defines a metric suite for specification
+gap and tampering, and includes a leakage-aware protocol for monitor
+evaluation. The paper is constrained by a strict artifact rule: tables, plots,
+and result sentences are populated only from saved outputs. If a monitor leaks,
+or a metric degenerates, the paper records that fact rather than smoothing it
+away.
+
+The strongest honest empirical takeaway is narrow but useful. Across all three
+tasks, proxy optimization diverges sharply from the hidden objective; in
+SensorTamper-v0 the benchmark also isolates a behaviorally active corruption
+channel; and leakage-cleared monitor evidence is feasible, but concentrated in
+a single environment rather than spread uniformly across the suite. That is a
+good fit for a workshop paper about evaluation methodology: \framework is a
+compact diagnostic object for future work on reward misspecification,
+tampering, and monitorability rather than a claim of broad safety coverage.
