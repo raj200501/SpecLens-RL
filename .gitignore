@@ -18,8 +18,15 @@ results/*
 !results/FINAL_REPORT.md
 !results/OVERRIDES.md
 !results/artifact_inventory.csv
+!results/FINAL_ASSET_REPAIR_AUDIT.md
+!results/FINAL_ASSET_MAPPING_REPAIR.md
+!results/FINAL_REBUILD_STATUS.md
+!results/FINAL_BUNDLE_CONSISTENCY.md
 latex/figures/*
 !latex/figures/.gitkeep
+!latex/figures/framework_overview.pdf
+!latex/figures/main_results_panel.pdf
+!latex/figures/sensortamper_monitorability.pdf
 latex/tables/*
 !latex/tables/.gitkeep
 latex/*.aux
@@ -28,3 +35,4 @@ latex/*.blg
 latex/*.log
 latex/*.xdv
 !latex/final_build.log
+!latex/final_rebuild.log
