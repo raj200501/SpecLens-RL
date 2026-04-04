@@ -1,6 +1,5 @@
 \section{Experimental Setup}
-We ran the saved experiment matrix using the active profile recorded in the preflight artifact.
-For monitor evaluation, we construct trajectory datasets from stochastic rollouts of the proxy-trained policy family only. The oracle baseline remains a diagnosis bound for specification-gap measurement rather than a deployable policy family, and mixing oracle with proxy rollouts made the first-pass monitor task method-trivial.
-Table \ref{tab:resource-results} reports the concrete seed counts, step budgets, wall-clock usage, and disk footprint derived from saved run summaries.
-\IfFileExists{tables/environment_summary.tex}{\input{tables/environment_summary}}{\todoartifact{environment summary table not yet generated}}
-\IfFileExists{tables/resource_results.tex}{\input{tables/resource_results}}{\todoartifact{resource results table not yet generated}}
+We evaluate three symbolic tasks, two policy families, and deterministic ID/OOD variants under a fixed local-compute budget. Each environment is trained with three random seeds. ProxyFarming and SensorTamper use 200,000 and 200,000 PPO steps per run respectively, while the recalibrated GemTimeout uses 60,000 steps per run. Oracle True PPO is included only as a diagnosis baseline for the hidden objective and is not presented as a deployable training rule.
+Monitor evaluation is deliberately stricter than the policy benchmark. We build monitor datasets from stochastic rollouts of the proxy-trained policy family only, then evaluate restricted and rich audit channels with logistic regression and gradient boosting under run-aware splits. This avoids the first-pass failure mode in which mixing proxy and oracle rollouts made monitor prediction method-trivial.
+Table~\ref{tab:env-main} summarizes the task instantiations used in the paper. Full resource accounting and threshold-sensitivity artifacts are kept in the repository outputs but omitted from the main body for space.
+\input{tables/environment_main}

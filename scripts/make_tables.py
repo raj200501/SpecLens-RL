@@ -10,7 +10,13 @@ import pandas as pd
 from _bootstrap import ROOT
 from src.analysis.aggregate import aggregate_episode_metrics, aggregate_monitor_results, aggregate_run_summaries
 from src.analysis.estimators import summarize_main_metrics, tampering_metrics, threshold_robustness
-from src.analysis.tables import dataframe_to_table, environment_summary_table
+from src.analysis.tables import (
+    dataframe_to_table,
+    environment_main_table,
+    environment_summary_table,
+    main_results_compact_table,
+    sensortamper_monitor_table,
+)
 from src.utils.budget import directory_size_bytes
 from src.utils.io_utils import write_json
 
@@ -27,6 +33,7 @@ def build_tables(
     resource_results_roots = resource_results_roots or [results_root]
     latex_tables = latex_root / "tables"
     environment_summary_table(["ProxyFarming-v0", "SensorTamper-v0", "GemTimeout-v0"], latex_tables / "environment_summary.tex")
+    environment_main_table(latex_tables / "environment_main.tex")
     episodes = aggregate_episode_metrics(results_root)
     run_frames = [aggregate_run_summaries(root) for root in resource_results_roots]
     run_frames = [frame for frame in run_frames if not frame.empty]
@@ -52,6 +59,7 @@ def build_tables(
         return
     main_df = summarize_main_metrics(episodes)
     dataframe_to_table(main_df, latex_tables / "main_specification_results.tex", "Main specification-diagnostic results.", "tab:main-results")
+    main_results_compact_table(main_df, latex_tables / "main_results_compact.tex")
     main_df.to_csv(results_root / "aggregated_main_results.csv", index=False)
     sensor = episodes[episodes["env_name"] == "SensorTamper-v0"]
     tamper_rows = []
@@ -83,6 +91,7 @@ def build_tables(
         merged = merged.rename(columns={"ROC_AUC": "ROC_AUC_hack", "PR_AUC": "PR_AUC_hack"})
         merged = merged[["env", "channel", "model", "ROC_AUC_hack", "PR_AUC_hack", "monitorability_gap", "leakage_status"]]
         dataframe_to_table(merged, latex_tables / "monitor_results.tex", "Monitor performance on hack detection.", "tab:monitor-results")
+        sensortamper_monitor_table(monitor_df, latex_tables / "sensortamper_monitor.tex")
         merged.to_csv(results_root / "aggregated_monitor_results.csv", index=False)
         write_json(results_root / "monitor_results_summary.json", {"rows": len(merged)})
 

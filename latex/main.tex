@@ -27,18 +27,18 @@ Anonymous Authors
 
 \begin{abstract}
 We introduce \framework, a framework-first benchmark and evaluation protocol
-for diagnosing specification failures in reinforcement learning at laptop scale.
-The core object is not a new optimization method, but a task schema that
+for diagnosing specification failures in reinforcement learning at laptop
+scale. The core object is not a new optimization method, but a task schema that
 separates proxy reward, hidden true objective, corruption channels, monitor
 channels, distribution shift, and policy family. We instantiate this schema in
-three symbolic environments designed to surface proxy gaming, explicit reward
-tampering, monitorability breakdown, and out-of-distribution failure under
-small-compute constraints. The repository packages a metric suite, leakage
-diagnostics for monitor channels, reproducible execution stages, and artifact
-generation rules that prevent unsupported claims. Experimental sections in this
-draft are populated only from saved outputs; where results are not yet
-generated, we leave structured placeholders rather than speculative claims.
-\IfFileExists{sections/generated_abstract_results.tex}{\input{sections/generated_abstract_results}}{}
+three symbolic environments designed to surface proxy gaming, explicit
+tampering, delayed-cost overoptimization, and monitoring failures under
+small-compute constraints. The repository packages a metric suite,
+leakage-aware monitor evaluation, reproducible execution stages, and artifact
+generation rules that tie claims directly to saved outputs. Empirically,
+\framework measures large specification gaps and explicit tampering risk across
+the benchmark, and shows that leakage-controlled monitorability evaluation is
+feasible but narrow, with valid evidence concentrated in SensorTamper-v0.
 \end{abstract}
 
 \input{sections/intro}

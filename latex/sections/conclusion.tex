@@ -7,11 +7,15 @@ The benchmark instantiates this schema in three symbolic environments and ties
 analysis outputs directly to paper artifacts through a reproducible local
 pipeline.
 
-The main open empirical question is not whether one method wins the benchmark,
-but whether the framework yields stable, interpretable measurements of
-specification gap, tampering, monitorability, and shift sensitivity across
-resource-safe runs. As results accumulate, the paper can be updated by inserting
-generated tables and figures rather than rewriting the framing. That is the
-intended use of the repository: a disciplined scaffold for honest small-scale
-safety experiments.
-\IfFileExists{sections/generated_conclusion_results.tex}{\input{sections/generated_conclusion_results}}{}
+The main empirical question is not whether one method wins the benchmark, but
+whether the framework yields stable, interpretable measurements of specification
+gap, tampering, monitorability, and shift sensitivity across resource-safe
+runs. The current artifact-backed paper answers that question positively for
+specification gaps and tampering, and more narrowly for monitorability:
+leakage-controlled monitor evidence exists, but it is concentrated in
+SensorTamper-v0 rather than spread uniformly across the suite.
+
+That scope is still scientifically useful. It suggests that compact symbolic
+benchmarks can support disciplined failure measurement without pretending to be
+deployment-realistic, and that leakage diagnostics should be treated as part of
+the benchmark definition rather than as optional post hoc checks.

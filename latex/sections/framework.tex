@@ -46,6 +46,13 @@ $\Pi$ denotes the learning or policy family considered. Because this is a
 framework paper, we keep $\Pi$ deliberately small: standard PPO trained on proxy
 reward, and an oracle baseline trained on the true objective for diagnosis only.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/framework_overview.pdf}
+\caption{Framework overview. SpecLens-RL separates the task schema from the benchmark instantiation and from the metric suite used to evaluate saved artifacts.}
+\label{fig:framework-overview}
+\end{figure*}
+
 \subsection{Environment Instantiations}
 We instantiate the framework in three symbolic environments intended to capture
 distinct but related specification failures.

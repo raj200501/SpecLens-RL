@@ -51,4 +51,9 @@ Our main contribution is therefore a reproducible evaluation object rather than
 an algorithmic claim: a task schema, metric protocol, benchmark instantiation,
 and monitor evaluation procedure for studying reward misspecification and
 tampering in reinforcement learning under modest hardware constraints.
-\IfFileExists{sections/generated_intro_results.tex}{\input{sections/generated_intro_results}}{}
+
+Empirically, the current benchmark supports a conservative but useful claim:
+specification gaps are easy to measure across all three environments, tampering
+risk is directly measurable in SensorTamper-v0, and leakage-controlled monitor
+evaluation is feasible but currently narrow, with accepted monitor evidence
+concentrated in SensorTamper-v0.

@@ -8,13 +8,23 @@ import argparse
 from _bootstrap import ROOT
 from src.analysis.aggregate import aggregate_episode_metrics, aggregate_monitor_results
 from src.analysis.estimators import summarize_main_metrics
-from src.analysis.plots import generalization_gap, hacking_incidence_bars, monitorability_gap, proxy_vs_true_scatter, tampering_summary
+from src.analysis.plots import (
+    framework_overview,
+    generalization_gap,
+    hacking_incidence_bars,
+    main_results_panel,
+    monitorability_gap,
+    proxy_vs_true_scatter,
+    sensortamper_monitorability,
+    tampering_summary,
+)
 
 
 def build_plots(results_root=None, latex_root=None, monitor_results_root=None) -> None:
     results_root = results_root or (ROOT / "results")
     latex_root = latex_root or (ROOT / "latex")
     monitor_results_root = monitor_results_root or results_root
+    framework_overview(latex_root / "figures" / "framework_overview.pdf")
     episodes = aggregate_episode_metrics(results_root)
     if episodes.empty:
         return
@@ -22,12 +32,14 @@ def build_plots(results_root=None, latex_root=None, monitor_results_root=None) -
     proxy_vs_true_scatter(episodes, latex_root / "figures" / "proxy_vs_true_scatter.pdf")
     hacking_incidence_bars(main_df, latex_root / "figures" / "hacking_incidence_bars.pdf")
     generalization_gap(main_df, latex_root / "figures" / "generalization_gap.pdf")
+    main_results_panel(main_df, latex_root / "figures" / "main_results_panel.pdf")
     tamper_df = episodes[episodes["env_name"] == "SensorTamper-v0"].groupby("method", as_index=False)["tamper_used"].mean()
     if not tamper_df.empty:
         tamper_df = tamper_df.rename(columns={"tamper_used": "tamper_utilization_rate"})
         tampering_summary(tamper_df, latex_root / "figures" / "tampering_summary.pdf")
     monitor_df = aggregate_monitor_results(monitor_results_root)
     if not monitor_df.empty:
+        sensortamper_monitorability(monitor_df, latex_root / "figures" / "sensortamper_monitorability.pdf")
         hack_only = monitor_df[monitor_df["target"] == "hack"].copy()
         pivot = hack_only.pivot_table(index=["env", "model"], columns="channel", values="ROC_AUC").reset_index()
         if {"restricted", "rich"}.issubset(pivot.columns):
