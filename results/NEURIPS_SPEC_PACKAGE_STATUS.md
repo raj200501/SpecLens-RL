@@ -4,9 +4,9 @@ Date: `2026-04-10`
 
 ## Package mode
 
-- Workshop mode used: `dblblindworkshop`
-- Named official workshop known: `no`
-- Package state: `generic-workshop-ready`
+- Package mode used: `eandd`
+- Named official NeurIPS track known: `yes`
+- Package state: `specific-track-ready`
 - Single-file `final.tex` status: `yes`
   - `neurips_latex/final.tex` contains no body-level `\input{}` dependencies
 
@@ -18,8 +18,8 @@ Date: `2026-04-10`
 - Verified page count from `neurips_latex/final.log`:
   - `7` pages
 - Current SHA-256:
-  - `final.pdf`: `b6ad23cec400f416774d7339e684ddaa19e4a622607fa6b8b19aaf17f8199feb`
-  - `final.tex`: `b26da198da82db31b2710f5fa0fb891eaf4cbf38472546702c2b369969862125`
+  - `final.pdf`: `ae51c70cc9bac07af58a6c2d5b941c8fccdb42eb83ceea1a02857c8de8e117e8`
+  - `final.tex`: `6df2aa16db92e27aa5a86bbbcdb91acdf0da13dacf3ddcdfc81a4354abd11522`
 
 ## Check status
 
@@ -27,7 +27,7 @@ Date: `2026-04-10`
 - Warning-free clean compile: `no`
 - Test suite status:
   - `./.venv/bin/pytest -q`
-  - `21 passed in 22.11s`
+  - `22 passed in 25.05s`
 
 ## Remaining packaging issues
 
@@ -35,11 +35,17 @@ Date: `2026-04-10`
    checking whether `final.bbl` changed.
 2. `lineno.sty` emits a non-fatal UTF-8 replacement warning in this Tectonic
    path.
-3. Minor underfull/overfull box warnings remain in the generated PDF.
 
 ## Bottom line
 
-- The package is truthfully `generic-workshop-ready`.
+- The package is truthfully `specific-track-ready` for the anonymous NeurIPS
+  2026 Evaluations \& Datasets track.
 - The updated single-file source and PDF both exist and build successfully.
-- No named official NeurIPS 2026 workshop was found, so no workshop-specific
-  retargeting was applied.
+- The rebuilt package now includes the accepted SensorTamper tamper-off
+  ablation-backed text.
+- The package has also been retargeted away from a generic unnamed workshop and
+  into the official anonymous `eandd` mode, which better matches the paper's
+  benchmark-and-evaluation contribution.
+- Avoidable table-layout box warnings were removed in the final rebuild; the
+  remaining warnings are style-path or Tectonic-path issues rather than paper
+  content issues.

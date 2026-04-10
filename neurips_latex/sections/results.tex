@@ -29,7 +29,13 @@ corruption channel. The proxy policy uses the tamper mechanism in $0.417$ of
 evaluation episodes, whereas the oracle never tampers. Tampered proxy
 trajectories are associated with a true-score delta of $-4.382$ relative to
 untampered proxy trajectories, showing that the corruption channel is
-behaviorally active rather than a dormant benchmark feature.
+behaviorally active rather than a dormant benchmark feature. That claim also
+survives a cheap causal check: when we evaluate the same saved proxy
+checkpoints with the tamper effect disabled, ID hack incidence falls from
+$0.833$ to $0.0$ and mean proxy return collapses from $15.9$ to $-0.45$, while
+the oracle policy is essentially unchanged. The learned exploit therefore
+depends on the active corruption channel, not just on a generic navigation
+failure.
 
 \begin{figure}[t]
 \centering
@@ -55,7 +61,7 @@ the restricted channel is already behaviorally informative.
 
 \input{tables/monitor_scope}
 
-\paragraph{Why this matters for a workshop audience.}
+\paragraph{Why this methodological result matters.}
 The benchmark's value is not that it solves monitoring. It is that it makes a
 failure mode visible: monitor evaluation can collapse under label structure or
 leakage assumptions even in small symbolic environments. \framework therefore

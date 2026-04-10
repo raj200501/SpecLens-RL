@@ -20,20 +20,28 @@ How it will be verified:
 - Read `results/second_pass/monitor_eval/leakage/*.json`.
 - Confirm that any new table/claim matches the saved counts and statuses exactly.
 
-### 2. Run one small SensorTamper-v0 conservative-proxy ablation
+### 2. Run one small SensorTamper-v0 corruption-channel ablation
 
 Why this was chosen:
-- It is the cheapest plausible way to test whether the benchmark distinguishes a non-oracle policy family in a reviewer-visible way.
-- It is directly aligned with the explicit corruption-channel story in SensorTamper-v0.
+- It is the cheapest direct test of the paper's strongest environment-specific
+  claim.
+- It sharpens the explicit corruption-channel story in SensorTamper-v0 without
+  launching a new training campaign.
 
 What success looks like:
-- Relative to Proxy PPO, the conservative proxy policy should reduce tampering or hack incidence and improve true score in a stable enough way to be worth mentioning.
-- If the result is unstable, tiny, or narratively confusing, it will stay out of the paper.
+- Evaluating saved SensorTamper checkpoints with the tamper effect disabled
+  should collapse the learned proxy exploit while leaving the oracle policy
+  essentially unchanged.
+- If the effect is tiny, noisy, or narratively ambiguous, it will stay out of
+  the paper.
 
 How it will be verified:
-- Train `CONSERVATIVE_PROXY_PPO` on `SensorTamper-v0` for the existing step budget.
-- Evaluate it with the same deterministic ID/OOD protocol used for the main benchmark.
-- Compare against the saved Proxy PPO and Oracle True PPO results using generated CSV artifacts.
+- Add a minimal evaluation-only environment flag:
+  `tamper_effect_enabled=False`.
+- Evaluate the saved `PROXY_PPO` and `ORACLE_TRUE_PPO` checkpoints with the
+  same deterministic ID/OOD protocol used for the benchmark.
+- Compare the ablation outputs against the saved baseline summaries using
+  generated CSV artifacts.
 
 ### 3. Rewrite the paper around the strongest honest identity
 
@@ -70,8 +78,19 @@ How it will be verified:
 - No new environments.
 - No attempt to manufacture nondegenerate monitor tasks in ProxyFarming-v0 or GemTimeout-v0.
 - No expansion into a multi-method RL paper.
+- No attempt to force the earlier conservative-proxy dead end into the paper.
 - No unsupported workshop retargeting to a named official NeurIPS 2026 workshop.
 
 ## Filtering rule for this pass
 
 Any improvement that does not clearly sharpen the benchmark/framework story, improve workshop fit, or add directly verifiable evidence will be logged as a trial and excluded from the final paper.
+
+## Addendum after official NeurIPS 2026 ED guidance became public
+
+- The package should no longer optimize around a generic unnamed workshop.
+- The paper's primary contribution now aligns more cleanly with the official
+  NeurIPS 2026 Evaluations \& Datasets track than with an unspecified workshop:
+  benchmark design, evaluation methodology, and artifact-backed empirical
+  insight.
+- A later hardening pass should therefore treat anonymous ED-track retargeting
+  as a valid high-leverage improvement rather than as out-of-scope churn.

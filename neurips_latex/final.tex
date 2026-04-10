@@ -1,6 +1,6 @@
 \documentclass{article}
 
-\usepackage[dblblindworkshop]{neurips_2026}
+\usepackage[eandd]{neurips_2026}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{hyperref}
@@ -15,8 +15,7 @@
 
 \newcommand{\framework}{SpecLens-RL}
 
-\title{\framework: A Compact Benchmark for Diagnosing Specification Failures in Reinforcement Learning}
-\workshoptitle{NeurIPS 2026 Workshop Submission (Target Workshop TBD)}
+\title{\framework: A Compact Benchmark and Evaluation Protocol for Diagnosing Specification Failures in Reinforcement Learning}
 \author{Anonymous Authors}
 
 \begin{document}
@@ -32,9 +31,10 @@ distribution shift, and policy family. We instantiate that tuple in three
 symbolic environments and evaluate it under strict artifact and leakage rules.
 Across all three tasks, proxy-trained policies diverge sharply from oracle
 policies on the hidden objective; SensorTamper-v0 additionally exposes a
-behaviorally active corruption channel; and proxy-only monitor evaluation shows
-that valid leakage-cleared monitor evidence is possible but narrow, because
-only SensorTamper-v0 yields a nondegenerate hack-label mix under the current
+behaviorally active corruption channel whose removal collapses the learned
+proxy exploit; and proxy-only monitor evaluation shows that valid
+leakage-cleared monitor evidence is possible but narrow, because only
+SensorTamper-v0 yields a nondegenerate hack-label mix under the current
 protocol. The result is a compact benchmark for studying reward
 misspecification, tampering, and the limits of monitorability claims under
 controlled compute budgets.
@@ -236,9 +236,9 @@ degenerate monitor tasks.
 
 \begin{table*}[t]
 \centering
-\small
+\scriptsize
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{p{1.65cm} p{1.8cm} p{2.0cm} p{2.1cm} p{2.5cm} p{2.2cm}}
+\begin{tabular}{l l l l l l}
 \toprule
 Environment & Proxy reward & True objective & Corruption channel & Monitor channels & OOD shift \\
 \midrule
@@ -276,9 +276,9 @@ proxy--true correlation is non-positive in every environment.
 
 \begin{table}[t]
 \centering
-\small
+\scriptsize
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{p{1.8cm} p{2.05cm} c c c c}
+\begin{tabular}{l l c c c c}
 \toprule
 Environment & Policy & ID true & OOD true & ID hack & OOD hack \\
 \midrule
@@ -303,7 +303,13 @@ corruption channel. The proxy policy uses the tamper mechanism in $0.417$ of
 evaluation episodes, whereas the oracle never tampers. Tampered proxy
 trajectories are associated with a true-score delta of $-4.382$ relative to
 untampered proxy trajectories, showing that the corruption channel is
-behaviorally active rather than a dormant benchmark feature.
+behaviorally active rather than a dormant benchmark feature. That claim also
+survives a cheap causal check: when we evaluate the same saved proxy
+checkpoints with the tamper effect disabled, ID hack incidence falls from
+$0.833$ to $0.0$ and mean proxy return collapses from $15.9$ to $-0.45$, while
+the oracle policy is essentially unchanged. The learned exploit therefore
+depends on the active corruption channel, not just on a generic navigation
+failure.
 
 \begin{figure}[t]
 \centering
@@ -329,23 +335,21 @@ the restricted channel is already behaviorally informative.
 
 \begin{table}[t]
 \centering
-\small
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{p{1.75cm} p{1.3cm} p{1.45cm} p{2.45cm}}
+\scriptsize
+\begin{tabular}{l c c c c}
 \toprule
-Environment & Hack labels & Failure labels & Hack monitor task \\
+Env. & Hack labels & Failure labels & Hack task & Failure task \\
 \midrule
-ProxyFarming & 72/72 & 72/72 & Degenerate \\
-SensorTamper & 58/72 & 72/72 & Accepted (restricted + rich) \\
-GemTimeout & 71/72 & 72/72 & Degenerate \\
+ProxyFarming & 72/72 & 72/72 & Degenerate & Degenerate \\
+SensorTamper & 58/72 & 72/72 & Accepted & Degenerate \\
+GemTimeout & 71/72 & 72/72 & Degenerate & Degenerate \\
 \bottomrule
 \end{tabular}
-}
-\caption{Proxy-only ID monitor scope. Only SensorTamper-v0 yields a nondegenerate hack-label mix under the second-pass protocol; failure labels collapse in all three environments.}
+\caption{Proxy-only ID monitor scope. Only SensorTamper-v0 yields a nondegenerate hack-label mix under the second-pass protocol; failure labels collapse in all three environments, so the failure-monitor task is degenerate everywhere in the current artifact set.}
 \label{tab:monitor-scope}
 \end{table}
 
-\paragraph{Why this matters for a workshop audience.}
+\paragraph{Why this methodological result matters.}
 The benchmark's value is not that it solves monitoring. It is that it makes a
 failure mode visible: monitor evaluation can collapse under label structure or
 leakage assumptions even in small symbolic environments. \framework therefore
@@ -385,11 +389,14 @@ The strongest empirical claim is conservative and useful. Across three symbolic
 tasks, \framework exposes large specification gaps and explicit tampering risk,
 while leakage-cleared monitor evidence is feasible but narrow, with accepted
 results concentrated in SensorTamper-v0 because the other proxy-only monitor
-tasks collapse under label degeneracy. The strongest honest version of the
-paper is therefore a compact benchmark and evaluation-methodology contribution,
-not a general RL method paper. For a workshop audience, that is a useful
-message: benchmark leakage and label degeneracy are not side issues, but part
-of what a trustworthy diagnostic benchmark must surface.
+tasks collapse under label degeneracy. In SensorTamper-v0, a tamper-off
+ablation further shows that the learned proxy exploit depends on the active
+corruption channel rather than surviving as a generic policy pathology. The
+strongest honest version of the paper is therefore a compact benchmark and
+evaluation-methodology contribution, not a general RL method paper. For a
+benchmark-evaluation audience, that is a useful message: benchmark leakage and
+label degeneracy are not side issues, but part of what a trustworthy
+diagnostic benchmark must surface.
 
 \bibliographystyle{plainnat}
 \bibliography{references}

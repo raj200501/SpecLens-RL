@@ -1,6 +1,6 @@
-# NeurIPS Workshop Build
+# NeurIPS Build
 
-This folder is a parallel NeurIPS 2026 workshop-ready paper package derived
+This folder is a parallel NeurIPS 2026 paper package derived
 from the strongest current SpecLens-RL paper.
 
 ## Local build
@@ -24,6 +24,5 @@ That command compiles the single-file submission source using:
 - `final.tex` is the flattened single-file submission source.
 - `final.pdf` is the compiled submission artifact produced from `final.tex`.
 - `.tectonic-cache/` stores the TeX resources needed for the verified offline rebuild path.
-- The package is workshop-ready, pending final workshop selection and replacement
-  of the placeholder `\workshoptitle{...}` with a real workshop title if and
-  when one is chosen.
+- The package currently targets the anonymous NeurIPS 2026 Evaluations \&
+  Datasets track via the official `eandd` option in `neurips_2026.sty`.

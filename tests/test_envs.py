@@ -48,10 +48,21 @@ def test_sensor_tamper_reward_hack_label():
     assert info["episode_summary"]["reward_hack"] is True
 
 
+def test_sensor_tamper_disabled_effect_removes_hack_signal():
+    env = make_env("SensorTamper-v0", split="id", tamper_effect_enabled=False)
+    env.reset(seed=0)
+    env.step(3)
+    _, reward, _, _, info = env.step(4)
+    assert info["episode_summary"]["tamper_used"] is False
+    assert info["episode_summary"]["tamper_count"] == 0
+    assert info["episode_summary"]["reward_hack"] is False
+    assert info["episode_summary"]["sensor_value"] == 0.0
+    assert reward < 0.0
+
+
 def test_true_score_progress_increases_toward_goal():
     env = make_env("GemTimeout-v0", split="id")
     env.reset(seed=0)
     baseline = env.get_episode_summary()["true_score"]
     _, _, _, _, info = env.step(1)
     assert info["episode_summary"]["true_score"] >= baseline
-

@@ -27,8 +27,9 @@ SpecLens-RL is a compact, framework-first benchmark for diagnosing reinforcement
    the saved proxy rollouts are effectively all-positive for hack labels, so the negative result is real but currently under-explained.
 3. The strongest policy comparison is still mostly Proxy PPO versus Oracle True PPO:
    that is valid for diagnosis, but it limits how much the benchmark appears to distinguish non-oracle policy choices.
-4. The package is generic-workshop-ready, not targeted to a named official workshop:
-   this weakens fit signaling even if the science is unchanged.
+4. Even after the ED-track retarget, fit risk remains:
+   the paper is now packaged for an official NeurIPS track, but ED reviewers may
+   still ask for broader benchmark scope or stronger non-oracle comparisons.
 5. Some analysis machinery exists but is not yet serving the story:
    the paper uses only part of the artifact set, and some benchmark diagnostics are still more repo-facing than reviewer-facing.
 
@@ -47,28 +48,35 @@ Why:
 - The leakage-aware monitor protocol and the willingness to report degenerate monitor tasks are methodological contributions.
 - The paper is more compelling as "how to evaluate specification failures honestly" than as "we built a broad monitoring benchmark."
 
-## E. Top 5 likely rejection reasons at a NeurIPS workshop
+## E. Top 5 likely rejection reasons at NeurIPS review
 
 1. The environments are too small and symbolic for reviewers who want stronger realism or larger-scale empirical breadth.
 2. The monitorability claim may feel too narrow because valid evidence is concentrated in only one environment.
 3. The policy-family comparison can look underpowered because Oracle True PPO is a diagnosis baseline, not a realistic competing method.
 4. The paper can still be misread as a polished artifact package rather than a sharp scientific claim if the narrative is not tightened further.
-5. Without a named official workshop target, the package signals "generic workshop submission" more than "carefully matched workshop paper."
+5. The official ED-track fit is much better than the old workshop fit, but that
+   track can also apply a sharper standard for benchmark breadth and empirical
+   generality than a niche workshop would.
 
-## F. Top 5 acceptance reasons at a well-matched NeurIPS workshop
+## F. Top 5 acceptance reasons at the best-fit NeurIPS route
 
 1. The paper has a real framework contribution rather than a vague benchmark claim.
 2. The benchmark suite is compact but scientifically coherent: all three tasks support the central proxy-vs-true diagnosis story.
 3. SensorTamper-v0 gives the paper a concrete corruption-channel result instead of only generic reward misspecification.
 4. The leakage-aware monitoring protocol is unusually honest and reviewer-friendly:
    it turns negative or degenerate findings into part of the evaluation claim.
-5. The repo already demonstrates strong artifact discipline, reproducibility, and laptop-scale accessibility, which are good workshop virtues.
+5. The repo already demonstrates strong artifact discipline, reproducibility,
+   and laptop-scale accessibility, which are good ED-track virtues for an
+   evaluation-first paper.
 
 ## G. Realistic current recommendation
 
 `borderline`
 
-For a well-matched workshop on evaluation, benchmark design, safety diagnostics, or oversight, this is viable but not yet comfortably over the bar. The current paper is scientifically honest and more mature than a typical toy-benchmark submission, but it still needs a final sharpening pass to convert its weaknesses into explicit methodology rather than perceived incompleteness.
+For the official NeurIPS 2026 Evaluations \& Datasets track, this is viable but
+not yet comfortably over the bar. The current paper is scientifically honest
+and more mature than a typical toy-benchmark submission, but its remaining
+narrowness still leaves it short of an easy accept.
 
 ## Ranked highest-leverage improvements
 

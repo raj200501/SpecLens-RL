@@ -3,8 +3,8 @@
 Date: `2026-04-10`
 
 This map covers the new or materially revised claims introduced in the NeurIPS
-workshop hardening pass. Claims without a concrete repo artifact should not be
-added to the paper.
+hardening pass. Claims without a concrete repo artifact should not be added to
+the paper.
 
 | Claim text | Supporting artifact | Exact file path | Support |
 | --- | --- | --- | --- |
@@ -13,6 +13,8 @@ added to the paper.
 | The paper is not a new RL optimizer paper; the method family is deliberately small and diagnosis-oriented. | Repo method set and benchmark framing. | `configs/default.yaml` | direct |
 | Across all three tasks, proxy-trained policies diverge sharply from oracle policies on the hidden objective. | Aggregated second-pass benchmark results. | `results/second_pass_aggregated_main_results.csv` | direct |
 | SensorTamper-v0 exposes a behaviorally active corruption channel rather than a dormant tamper feature. | Aggregated tampering metrics show nonzero tamper use and a large negative true-score delta. | `results/second_pass_aggregated_tampering_results.csv` | direct |
+| In SensorTamper-v0, disabling the tamper effect at evaluation time collapses the proxy exploit while leaving the oracle essentially unchanged. | Direct baseline-versus-ablation comparison from saved checkpoints under `tamper_effect_enabled=False`. | `results/spec_improvement_trials/sensortamper_tamper_off/comparison_summary.csv` | direct |
+| Under the tamper-off ablation, Proxy PPO ID hack incidence falls from `0.833` to `0.0`, ID proxy return falls from `15.9` to `-0.45`, and ID true score improves from `-3.346` to `0.288`. | Baseline-versus-ablation comparison summary. | `results/spec_improvement_trials/sensortamper_tamper_off/comparison_summary.csv` | direct |
 | Valid leakage-cleared monitor evidence is narrow because only SensorTamper-v0 yields a nondegenerate hack-label mix under the current proxy-only protocol. | Cross-environment monitor-scope summary generated from proxy-only monitor datasets and monitor outputs. | `results/second_pass/aggregated_monitor_scope_results.csv` | direct |
 | Under the proxy-only ID monitor protocol, SensorTamper has `58/72` positive hack labels, ProxyFarming has `72/72`, and GemTimeout has `71/72`. | Cross-environment monitor-scope summary. | `results/second_pass/aggregated_monitor_scope_results.csv` | direct |
 | Failure labels collapse to a single class in all three environments under the current proxy-only ID monitor protocol. | Cross-environment monitor-scope summary. | `results/second_pass/aggregated_monitor_scope_results.csv` | direct |

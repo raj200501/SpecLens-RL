@@ -1,6 +1,6 @@
 \documentclass{article}
 
-\usepackage[dblblindworkshop]{neurips_2026}
+\usepackage[eandd]{neurips_2026}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{hyperref}
@@ -15,8 +15,7 @@
 
 \newcommand{\framework}{SpecLens-RL}
 
-\title{\framework: A Compact Benchmark for Diagnosing Specification Failures in Reinforcement Learning}
-\workshoptitle{NeurIPS 2026 Workshop Submission (Target Workshop TBD)}
+\title{\framework: A Compact Benchmark and Evaluation Protocol for Diagnosing Specification Failures in Reinforcement Learning}
 \author{Anonymous Authors}
 
 \begin{document}
@@ -32,9 +31,10 @@ distribution shift, and policy family. We instantiate that tuple in three
 symbolic environments and evaluate it under strict artifact and leakage rules.
 Across all three tasks, proxy-trained policies diverge sharply from oracle
 policies on the hidden objective; SensorTamper-v0 additionally exposes a
-behaviorally active corruption channel; and proxy-only monitor evaluation shows
-that valid leakage-cleared monitor evidence is possible but narrow, because
-only SensorTamper-v0 yields a nondegenerate hack-label mix under the current
+behaviorally active corruption channel whose removal collapses the learned
+proxy exploit; and proxy-only monitor evaluation shows that valid
+leakage-cleared monitor evidence is possible but narrow, because only
+SensorTamper-v0 yields a nondegenerate hack-label mix under the current
 protocol. The result is a compact benchmark for studying reward
 misspecification, tampering, and the limits of monitorability claims under
 controlled compute budgets.

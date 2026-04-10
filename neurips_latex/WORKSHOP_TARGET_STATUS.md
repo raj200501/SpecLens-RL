@@ -1,23 +1,24 @@
-# Workshop Target Status
+# Historical Workshop Target Status
 
-- Exact workshop targeted: none yet.
-- Status: `No specific official NeurIPS 2026 workshop CFP found at packaging time`.
-- Current formatting mode: generic double-blind workshop submission using the
-  official `dblblindworkshop` option in `neurips_2026.sty`.
+- Exact workshop targeted: none.
+- Status: `No specific official NeurIPS 2026 workshop CFP found`.
+- Current recommendation: do not target an unnamed workshop while the official
+  NeurIPS 2026 Evaluations \& Datasets track is publicly available and better
+  matches the paper's primary contribution.
+- Current formatting mode: anonymous `eandd` submission using the official
+  `eandd` option in `neurips_2026.sty`.
 
-## Why this paper is a plausible workshop fit
+## Why the workshop path was dropped
 
-- The paper is a strong fit for future NeurIPS workshops on evaluation,
+- The paper is still thematically plausible for future workshops on evaluation,
   benchmark design, AI safety, monitorability, robustness, or reinforcement
   learning diagnostics.
-- Its strongest themes are:
-  - explicit task-tuple design for diagnosis,
-  - leakage-aware monitor evaluation,
-  - symbolic model organisms for controlled failure analysis,
-  - benchmark methodology for reward misspecification and tampering.
+- But the official ED track now offers a named NeurIPS target whose review
+  frame is closer to the paper's actual contribution: benchmark design,
+  evaluation methodology, and empirical insight into model failure.
 
 ## What must be updated later
 
-- Replace the placeholder workshop title in `main.tex` and `final.tex`.
-- Re-check whether the eventual workshop requests single-blind or double-blind review.
-- Re-check any workshop-specific page limit, appendix rule, or camera-ready packaging rule.
+- Re-check the ED FAQ and handbook before submission.
+- Revisit workshop targeting only if a later official workshop CFP is a clearly
+  better fit than ED.

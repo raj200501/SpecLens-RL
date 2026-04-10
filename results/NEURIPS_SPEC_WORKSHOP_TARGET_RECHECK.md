@@ -24,6 +24,22 @@ No named official target was found.
 
 As of `2026-04-10`, the public official sources checked above confirm that NeurIPS 2026 workshops exist as part of the conference schedule, but they do not yet expose a named workshop list or a workshop-specific CFP that can be truthfully targeted in this repository.
 
+## Addendum: official NeurIPS track fit now matters more than unnamed workshop fit
+
+Since the original workshop recheck, the public NeurIPS 2026 Evaluations
+\& Datasets FAQ has become the more relevant official source for this paper's
+targeting decision. That FAQ states that:
+
+- accepted ED papers appear in the same NeurIPS proceedings as main-track
+  papers,
+- the ED track uses the same LaTeX template, and
+- papers whose main contribution is an evaluation framework or empirical
+  evaluation insight should be framed for ED rather than for another track.
+
+For this repository, that changes the practical recommendation: the strongest
+named official NeurIPS target is now the anonymous ED track, not a generic
+unnamed workshop package.
+
 ## Best-fit conclusion
 
 - Best current fit family: `evaluation / benchmark design`
@@ -39,17 +55,21 @@ Why:
 
 ## Packaging recommendation
 
-- Keep the package `generic-workshop-ready`: `yes`
-- Keep anonymized workshop mode: `yes`
-- Keep `dblblindworkshop` as the current default: `yes`
+- Keep the package `generic-workshop-ready`: `no`
+- Keep anonymized workshop mode: `no`
+- Keep `dblblindworkshop` as the current default: `no`
+- Retarget to the official anonymous ED track: `yes`
 
 Reason:
-- No official named workshop page was found that would justify replacing the placeholder workshop title or switching review mode.
-- Until a specific workshop page is public, generic anonymized workshop packaging remains the safest truthful choice.
+- No official named workshop page was found.
+- An official named NeurIPS track now exists whose stated review frame matches
+  the paper better than an unnamed workshop.
+- Using the official anonymous `eandd` mode removes the placeholder workshop
+  title and improves target-fit honesty.
 
 ## Practical implication for this repo
 
 - Do not invent a workshop target.
 - Do not claim workshop-specific fit beyond the theme family.
-- Improve the paper for the best current workshop family match:
-  `evaluation / benchmark design` with explicit ties to safety diagnostics and monitorability.
+- Prefer the official ED-track framing over generic workshop framing until a
+  concrete workshop CFP appears that is clearly better aligned.
