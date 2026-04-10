@@ -10,6 +10,8 @@ built from stochastic rollouts of the proxy-trained policy family only, and
 restricted versus rich audit channels are evaluated with logistic regression and
 gradient boosting under run-aware splits. This avoids the first-pass failure
 mode in which mixing proxy and oracle rollouts made monitor prediction
-method-trivial.
+method-trivial. In addition to AUC metrics, we report hack-label and
+failure-label support so that accepted monitor results can be separated from
+degenerate monitor tasks.
 
 \input{tables/environment_summary_compact}

@@ -37,11 +37,20 @@ and result sentences are populated only from saved outputs. If a monitor leaks,
 or a metric degenerates, the paper records that fact rather than smoothing it
 away.
 
-The strongest honest empirical takeaway is narrow but useful. Across all three
-tasks, proxy optimization diverges sharply from the hidden objective; in
-SensorTamper-v0 the benchmark also isolates a behaviorally active corruption
+Concretely, we make three contributions. First, we package specification
+diagnosis as an explicit task tuple rather than a loose environment suite.
+Second, we instantiate that tuple in three symbolic environments that expose
+large proxy--true gaps across distinct failure modes, including explicit
+corruption-channel behavior in SensorTamper-v0. Third, we add leakage-aware
+monitor evaluation and report when the monitor task itself is degenerate; under
+the current proxy-only protocol, only SensorTamper-v0 yields a nondegenerate
+hack-monitor problem.
+
+The strongest honest empirical takeaway is therefore narrow but useful. Across
+all three tasks, proxy optimization diverges sharply from the hidden objective;
+in SensorTamper-v0 the benchmark also isolates a behaviorally active corruption
 channel; and leakage-cleared monitor evidence is feasible, but concentrated in
-a single environment rather than spread uniformly across the suite. That is a
-good fit for a workshop paper about evaluation methodology: \framework is a
-compact diagnostic object for future work on reward misspecification,
-tampering, and monitorability rather than a claim of broad safety coverage.
+a single environment rather than spread uniformly across the suite. That makes
+\framework strongest as a benchmark and evaluation-methodology paper for reward
+misspecification, tampering, and monitorability, rather than a claim of broad
+safety coverage or a new RL solution method.

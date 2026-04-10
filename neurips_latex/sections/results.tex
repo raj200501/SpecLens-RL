@@ -42,21 +42,23 @@ rather than dramatic.}
 
 \paragraph{Leakage-aware monitor evaluation matters.}
 Under the stricter second-pass protocol, valid monitor evidence is concentrated
-in SensorTamper-v0. A restricted logistic-regression monitor reaches ROC-AUC
-$0.936$ and PR-AUC $0.962$; the corresponding rich-channel model reaches
-$0.964$ and $0.986$. That gain is real but small, which is scientifically
-useful: the task is not trivialized, yet richer audit information helps. By
-contrast, ProxyFarming and GemTimeout remain degenerate under the proxy-only ID
-monitor protocol. That negative result is part of the paper's argument rather
-than an exception to hide: monitorability evaluation can easily look stronger
-than it is unless leakage and label degeneracy are treated as first-class
-diagnostics.
+in SensorTamper-v0, and Table~\ref{tab:monitor-scope} shows why. Under
+proxy-only ID rollouts, SensorTamper yields $58/72$ positive hack labels,
+whereas ProxyFarming is $72/72$ positive and GemTimeout is $71/72$ positive;
+failure labels collapse to a single class in all three environments. Only
+SensorTamper therefore supports a nondegenerate grouped hack-monitor task under
+the current protocol. Within that one valid case, a restricted
+logistic-regression monitor reaches ROC-AUC $0.936$ and PR-AUC $0.962$; the
+corresponding rich-channel model reaches $0.964$ and $0.986$. The gain is real
+but small, which is scientifically useful: richer audit information helps, but
+the restricted channel is already behaviorally informative.
 
-\input{tables/sensortamper_monitor}
+\input{tables/monitor_scope}
 
 \paragraph{Why this matters for a workshop audience.}
 The benchmark's value is not that it solves monitoring. It is that it makes a
-failure mode visible: naive monitor evaluation can collapse under leakage or
-label structure even in small symbolic environments. \framework therefore
-supports two useful diagnoses at once: it measures proxy and tampering failures,
-and it exposes when a monitoring story is not yet trustworthy.
+failure mode visible: monitor evaluation can collapse under label structure or
+leakage assumptions even in small symbolic environments. \framework therefore
+supports two diagnoses at once: it measures proxy and tampering failures, and
+it shows when a monitoring claim is not yet trustworthy enough to report
+without qualification.

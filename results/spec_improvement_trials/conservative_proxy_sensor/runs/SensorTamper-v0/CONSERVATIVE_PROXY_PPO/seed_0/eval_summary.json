@@ -1,0 +1,13 @@
+{
+  "base_env_name": "SensorTamper-v0",
+  "deterministic": true,
+  "env_kwargs": {},
+  "env_name": "SensorTamper-v0",
+  "episodes_total": 48,
+  "eval_episodes_per_split": 24,
+  "method": "CONSERVATIVE_PROXY_PPO",
+  "saved_trajectories": 0,
+  "seed": 0,
+  "source_checkpoint": "results/spec_improvement_trials/conservative_proxy_sensor/runs/SensorTamper-v0/CONSERVATIVE_PROXY_PPO/seed_0/best.ckpt",
+  "wall_clock_sec": 0.2680776119232178
+}

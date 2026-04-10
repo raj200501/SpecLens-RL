@@ -69,7 +69,9 @@ true-score deltas for tampered versus untampered trajectories.
 \paragraph{Monitorability metrics.}
 Given a fixed monitor channel, we train small monitors to predict reward-hack
 and failure labels from trajectory summaries and report ROC-AUC, PR-AUC, and
-the difference between rich and restricted channels.
+the difference between rich and restricted channels. We also record whether the
+underlying monitor task is nondegenerate at all, since monitor scores are not
+meaningful when label balance or leakage screening collapses the evaluation.
 
 \paragraph{Generalization and degeneracy.}
 We evaluate both ID and OOD variants and explicitly flag degenerate situations,

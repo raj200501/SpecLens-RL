@@ -28,6 +28,13 @@ MODEL_LABELS = {
     "gradient_boosting": "Gradient boosting",
 }
 
+MONITOR_STATUS_LABELS = {
+    "accepted": "Accepted",
+    "degenerate": "Degenerate",
+    "rejected": "Rejected",
+    "missing": "Missing",
+}
+
 
 def _write_custom_table(
     output_path: str | Path,
@@ -39,6 +46,7 @@ def _write_custom_table(
     table_env: str = "table",
     size_command: str = r"\small",
     midrules_after: List[int] | None = None,
+    resize_to: str | None = None,
 ) -> None:
     target = Path(output_path)
     midrules_after = set(midrules_after or [])
@@ -46,19 +54,27 @@ def _write_custom_table(
         rf"\begin{{{table_env}}}[t]",
         r"\centering",
         size_command,
-        rf"\begin{{tabular}}{{{column_spec}}}",
-        r"\toprule",
-        " & ".join(headers) + r" \\",
-        r"\midrule",
     ]
+    if resize_to:
+        lines.append(rf"\resizebox{{{resize_to}}}{{!}}{{%")
+    lines.extend(
+        [
+            rf"\begin{{tabular}}{{{column_spec}}}",
+            r"\toprule",
+            " & ".join(headers) + r" \\",
+            r"\midrule",
+        ]
+    )
     for idx, row in enumerate(rows):
         lines.append(" & ".join(row) + r" \\")
         if idx in midrules_after:
             lines.append(r"\midrule")
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    if resize_to:
+        lines.append(r"}")
     lines.extend(
         [
-            r"\bottomrule",
-            r"\end{tabular}",
             rf"\caption{{{caption}}}",
             rf"\label{{{label}}}",
             rf"\end{{{table_env}}}",
@@ -139,6 +155,7 @@ def environment_summary_compact_table(output_path: str | Path) -> None:
         column_spec="p{1.65cm} p{1.8cm} p{2.0cm} p{2.1cm} p{2.5cm} p{2.2cm}",
         table_env="table*",
         size_command=r"\small",
+        resize_to=r"\textwidth",
     )
 
 
@@ -178,6 +195,7 @@ def main_results_compact_table(main_df: pd.DataFrame, output_path: str | Path) -
         column_spec="p{1.8cm} p{2.05cm} c c c c",
         size_command=r"\small",
         midrules_after=midrules_after,
+        resize_to=r"\columnwidth",
     )
 
 
@@ -208,6 +226,44 @@ def sensortamper_monitor_table(monitor_df: pd.DataFrame, output_path: str | Path
         label="tab:sensortamper-monitor",
         column_spec="p{1.6cm} p{2.25cm} c c c",
         size_command=r"\small",
+        resize_to=r"\columnwidth",
+    )
+
+
+def monitor_scope_table(scope_df: pd.DataFrame, output_path: str | Path) -> None:
+    if scope_df.empty:
+        return
+    rows = []
+    order = ["ProxyFarming-v0", "SensorTamper-v0", "GemTimeout-v0"]
+    for env_name in order:
+        subset = scope_df[scope_df["env"] == env_name]
+        if subset.empty:
+            continue
+        row = subset.iloc[0]
+        outcome = MONITOR_STATUS_LABELS.get(str(row["hack_monitor_status"]), str(row["hack_monitor_status"]).capitalize())
+        if row["hack_monitor_channels"]:
+            channel_text = str(row["hack_monitor_channels"]).replace("restricted", "restricted").replace("rich", "rich")
+            outcome = f"{outcome} ({channel_text})"
+        rows.append(
+            [
+                ENV_LABELS.get(env_name, env_name),
+                f"{int(row['hack_positive'])}/{int(row['hack_total'])}",
+                f"{int(row['failure_positive'])}/{int(row['failure_total'])}",
+                outcome,
+            ]
+        )
+    _write_custom_table(
+        output_path=output_path,
+        headers=["Environment", "Hack labels", "Failure labels", "Hack monitor task"],
+        rows=rows,
+        caption=(
+            "Proxy-only ID monitor scope. Only SensorTamper-v0 yields a nondegenerate hack-label mix under the second-pass protocol; "
+            "failure labels collapse in all three environments."
+        ),
+        label="tab:monitor-scope",
+        column_spec="p{1.75cm} p{1.3cm} p{1.45cm} p{2.45cm}",
+        size_command=r"\small",
+        resize_to=r"\columnwidth",
     )
 
 

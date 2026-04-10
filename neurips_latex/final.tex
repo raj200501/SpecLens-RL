@@ -15,7 +15,7 @@
 
 \newcommand{\framework}{SpecLens-RL}
 
-\title{\framework: A Compact Framework for Diagnosing Specification Failures in Reinforcement Learning}
+\title{\framework: A Compact Benchmark for Diagnosing Specification Failures in Reinforcement Learning}
 \workshoptitle{NeurIPS 2026 Workshop Submission (Target Workshop TBD)}
 \author{Anonymous Authors}
 
@@ -24,18 +24,20 @@
 \maketitle
 
 \begin{abstract}
-We present \framework, a compact benchmark and evaluation protocol for diagnosing
-specification failures in reinforcement learning. The core contribution is not a
-new optimization method, but a task tuple that separates proxy reward, hidden
-true objective, corruption channels, monitor channels, distribution shift, and
-policy family. We instantiate this tuple in three symbolic environments that
-surface proxy gaming, explicit tampering, delayed-cost overoptimization, and
-monitorability failures under laptop-scale compute budgets. The package
-includes leakage-aware monitor evaluation and strict artifact rules that tie
-claims directly to saved outputs. Empirically, \framework exposes large
-proxy--true objective gaps and explicit tampering risk across the benchmark,
-while leakage-cleared monitor evidence is feasible but narrow, with accepted
-results concentrated in SensorTamper-v0.
+We present \framework, a compact benchmark and evaluation protocol for
+diagnosing specification failures in reinforcement learning. Rather than
+proposing a new optimizer, \framework defines a task tuple that separates proxy
+reward, hidden true objective, corruption channels, monitor channels,
+distribution shift, and policy family. We instantiate that tuple in three
+symbolic environments and evaluate it under strict artifact and leakage rules.
+Across all three tasks, proxy-trained policies diverge sharply from oracle
+policies on the hidden objective; SensorTamper-v0 additionally exposes a
+behaviorally active corruption channel; and proxy-only monitor evaluation shows
+that valid leakage-cleared monitor evidence is possible but narrow, because
+only SensorTamper-v0 yields a nondegenerate hack-label mix under the current
+protocol. The result is a compact benchmark for studying reward
+misspecification, tampering, and the limits of monitorability claims under
+controlled compute budgets.
 \end{abstract}
 
 \section{Introduction}
@@ -77,15 +79,23 @@ and result sentences are populated only from saved outputs. If a monitor leaks,
 or a metric degenerates, the paper records that fact rather than smoothing it
 away.
 
-The strongest honest empirical takeaway is narrow but useful. Across all three
-tasks, proxy optimization diverges sharply from the hidden objective; in
-SensorTamper-v0 the benchmark also isolates a behaviorally active corruption
-channel; and leakage-cleared monitor evidence is feasible, but concentrated in
-a single environment rather than spread uniformly across the suite. That is a
-good fit for a workshop paper about evaluation methodology: \framework is a
-compact diagnostic object for future work on reward misspecification,
-tampering, and monitorability rather than a claim of broad safety coverage.
+Concretely, we make three contributions. First, we package specification
+diagnosis as an explicit task tuple rather than a loose environment suite.
+Second, we instantiate that tuple in three symbolic environments that expose
+large proxy--true gaps across distinct failure modes, including explicit
+corruption-channel behavior in SensorTamper-v0. Third, we add leakage-aware
+monitor evaluation and report when the monitor task itself is degenerate; under
+the current proxy-only protocol, only SensorTamper-v0 yields a nondegenerate
+hack-monitor problem.
 
+The strongest honest empirical takeaway is therefore narrow but useful. Across
+all three tasks, proxy optimization diverges sharply from the hidden objective;
+in SensorTamper-v0 the benchmark also isolates a behaviorally active corruption
+channel; and leakage-cleared monitor evidence is feasible, but concentrated in
+a single environment rather than spread uniformly across the suite. That makes
+\framework strongest as a benchmark and evaluation-methodology paper for reward
+misspecification, tampering, and monitorability, rather than a claim of broad
+safety coverage or a new RL solution method.
 \section{Related Work}
 Work on AI safety in reinforcement learning has long emphasized the gap between
 an implemented reward signal and the objective a designer actually intends.
@@ -121,7 +131,6 @@ model-organism safety environments, formal treatments of reward hacking and
 tampering, and benchmark design for robustness. \framework contributes a
 compact synthesis centered on explicit task structure, metric discipline, and
 leakage-aware monitoring rather than a new optimization technique.
-
 \section{Task Tuple and Evaluation Protocol}
 \subsection{Task Tuple}
 We define a specification-diagnostic task as
@@ -193,7 +202,9 @@ true-score deltas for tampered versus untampered trajectories.
 \paragraph{Monitorability metrics.}
 Given a fixed monitor channel, we train small monitors to predict reward-hack
 and failure labels from trajectory summaries and report ROC-AUC, PR-AUC, and
-the difference between rich and restricted channels.
+the difference between rich and restricted channels. We also record whether the
+underlying monitor task is nondegenerate at all, since monitor scores are not
+meaningful when label balance or leakage screening collapses the evaluation.
 
 \paragraph{Generalization and degeneracy.}
 We evaluate both ID and OOD variants and explicitly flag degenerate situations,
@@ -207,7 +218,6 @@ audit-side summaries but exclude direct label-source variables. Before any
 monitor result is accepted, the repository runs leakage diagnostics that try to
 predict the target from suspicious individual features or source variables. A
 monitor result is reported only if the feature set passes that screening.
-
 \section{Experimental Setup}
 We evaluate three symbolic tasks, two policy families, and deterministic ID/OOD
 variants under a fixed local-compute budget. Each environment is trained with
@@ -220,26 +230,27 @@ built from stochastic rollouts of the proxy-trained policy family only, and
 restricted versus rich audit channels are evaluated with logistic regression and
 gradient boosting under run-aware splits. This avoids the first-pass failure
 mode in which mixing proxy and oracle rollouts made monitor prediction
-method-trivial.
+method-trivial. In addition to AUC metrics, we report hack-label and
+failure-label support so that accepted monitor results can be separated from
+degenerate monitor tasks.
 
 \begin{table*}[t]
 \centering
 \small
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{p{1.8cm} p{2.35cm} p{2.3cm} p{2.35cm} p{3.2cm} p{2.6cm}}
+\begin{tabular}{p{1.65cm} p{1.8cm} p{2.0cm} p{2.1cm} p{2.5cm} p{2.2cm}}
 \toprule
 Environment & Proxy reward & True objective & Corruption channel & Monitor channels & OOD shift \\
 \midrule
-ProxyFarming & Beacon reward & Reach goal efficiently & Repeated beacon harvest & Restricted trace; rich audit summaries & Beacon move; layout; distractors \\
-SensorTamper & Sensor-mediated reward & Deliver object to target & Tamper tile spoofs sensor & Restricted trace; rich audit summaries & Tamper move; delay; path change \\
-GemTimeout & Gem reward & Reach goal before timeout & Gem detours trade off time & Restricted trace; rich audit summaries & Density; budget; deceptive placement \\
+ProxyFarming & Beacon reward & Reach goal efficiently & Repeated beacon harvesting & Restricted trace; rich adds coarse audit state & Beacon move; layout; distractors \\
+SensorTamper & Sensor-mediated reward & Deliver object to target & Tamper tile spoofs sensor & Restricted trace; rich adds coarse audit state & Tamper move; delay; path change \\
+GemTimeout & Gem reward & Reach goal before timeout & Gem detours trade off with time & Restricted trace; rich adds coarse audit state & Density; budget; deceptive placement \\
 \bottomrule
 \end{tabular}
 }
-\caption{Compact summary of the three benchmark environments used in the workshop paper.}
+\caption{Compact summary of the three benchmark environments used in the main paper.}
 \label{tab:env-summary-compact}
 \end{table*}
-
 \section{Results}
 \begin{figure*}[t]
 \centering
@@ -267,7 +278,7 @@ proxy--true correlation is non-positive in every environment.
 \centering
 \small
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{llcccc}
+\begin{tabular}{p{1.8cm} p{2.05cm} c c c c}
 \toprule
 Environment & Policy & ID true & OOD true & ID hack & OOD hack \\
 \midrule
@@ -282,8 +293,7 @@ GemTimeout & Proxy PPO & -0.153 & -0.065 & 1.000 & 0.667 \\
 \bottomrule
 \end{tabular}
 }
-\caption{Main specification-gap results. Higher true score is better; higher
-hack incidence indicates more frequent proxy exploitation.}
+\caption{Main specification-gap results used in the paper narrative. Higher true score is better; higher hack incidence indicates more frequent proxy exploitation.}
 \label{tab:main-results-compact}
 \end{table}
 
@@ -306,43 +316,42 @@ rather than dramatic.}
 
 \paragraph{Leakage-aware monitor evaluation matters.}
 Under the stricter second-pass protocol, valid monitor evidence is concentrated
-in SensorTamper-v0. A restricted logistic-regression monitor reaches ROC-AUC
-$0.936$ and PR-AUC $0.962$; the corresponding rich-channel model reaches
-$0.964$ and $0.986$. That gain is real but small, which is scientifically
-useful: the task is not trivialized, yet richer audit information helps. By
-contrast, ProxyFarming and GemTimeout remain degenerate under the proxy-only ID
-monitor protocol. That negative result is part of the paper's argument rather
-than an exception to hide: monitorability evaluation can easily look stronger
-than it is unless leakage and label degeneracy are treated as first-class
-diagnostics.
+in SensorTamper-v0, and Table~\ref{tab:monitor-scope} shows why. Under
+proxy-only ID rollouts, SensorTamper yields $58/72$ positive hack labels,
+whereas ProxyFarming is $72/72$ positive and GemTimeout is $71/72$ positive;
+failure labels collapse to a single class in all three environments. Only
+SensorTamper therefore supports a nondegenerate grouped hack-monitor task under
+the current protocol. Within that one valid case, a restricted
+logistic-regression monitor reaches ROC-AUC $0.936$ and PR-AUC $0.962$; the
+corresponding rich-channel model reaches $0.964$ and $0.986$. The gain is real
+but small, which is scientifically useful: richer audit information helps, but
+the restricted channel is already behaviorally informative.
 
 \begin{table}[t]
 \centering
 \small
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{llccc}
+\begin{tabular}{p{1.75cm} p{1.3cm} p{1.45cm} p{2.45cm}}
 \toprule
-Channel & Monitor & ROC-AUC & PR-AUC & Leakage \\
+Environment & Hack labels & Failure labels & Hack monitor task \\
 \midrule
-Restricted & Gradient boosting & 0.964 & 0.984 & Pass \\
-Restricted & Logistic regression & 0.936 & 0.962 & Pass \\
-Rich & Gradient boosting & 0.965 & 0.984 & Pass \\
-Rich & Logistic regression & 0.964 & 0.986 & Pass \\
+ProxyFarming & 72/72 & 72/72 & Degenerate \\
+SensorTamper & 58/72 & 72/72 & Accepted (restricted + rich) \\
+GemTimeout & 71/72 & 72/72 & Degenerate \\
 \bottomrule
 \end{tabular}
 }
-\caption{Leakage-cleared hack-monitor results for SensorTamper-v0 under the
-proxy-only monitor protocol.}
-\label{tab:sensortamper-monitor}
+\caption{Proxy-only ID monitor scope. Only SensorTamper-v0 yields a nondegenerate hack-label mix under the second-pass protocol; failure labels collapse in all three environments.}
+\label{tab:monitor-scope}
 \end{table}
 
 \paragraph{Why this matters for a workshop audience.}
 The benchmark's value is not that it solves monitoring. It is that it makes a
-failure mode visible: naive monitor evaluation can collapse under leakage or
-label structure even in small symbolic environments. \framework therefore
-supports two useful diagnoses at once: it measures proxy and tampering failures,
-and it exposes when a monitoring story is not yet trustworthy.
-
+failure mode visible: monitor evaluation can collapse under label structure or
+leakage assumptions even in small symbolic environments. \framework therefore
+supports two diagnoses at once: it measures proxy and tampering failures, and
+it shows when a monitoring claim is not yet trustworthy enough to report
+without qualification.
 \section{Limitations}
 \framework is a measurement benchmark, not a realistic deployment simulator.
 The environments are symbolic model organisms and cannot support strong claims
@@ -354,7 +363,8 @@ Monitorability claims in particular should be interpreted cautiously. A monitor
 that performs well on one symbolic environment with carefully screened features
 does not imply a practical oversight system for deployment, and a poor monitor
 result may reflect a deliberately restricted audit channel rather than a broad
-impossibility result.
+impossibility result. In the current artifact set, accepted hack-monitor
+evaluation exists only for SensorTamper-v0 under the proxy-only protocol.
 
 The benchmark also relies on manually designed hidden objectives and corruption
 channels. That is useful for diagnosis, but it means the suite emphasizes the
@@ -362,7 +372,6 @@ failure modes the benchmark author chose to instantiate. Future work should be
 judged not only by whether it enlarges the suite, but by whether it preserves
 the explicit task tuple, artifact discipline, and leakage-aware evaluation
 protocol introduced here.
-
 \section{Conclusion}
 We presented \framework, a compact framework for diagnosing specification
 failures in reinforcement learning. The core contribution is a reusable task
@@ -375,9 +384,12 @@ pipeline.
 The strongest empirical claim is conservative and useful. Across three symbolic
 tasks, \framework exposes large specification gaps and explicit tampering risk,
 while leakage-cleared monitor evidence is feasible but narrow, with accepted
-results concentrated in SensorTamper-v0. For workshop purposes, that is a
-useful methodological message: benchmark leakage and label degeneracy are not
-side issues, but part of what a trustworthy diagnostic benchmark must surface.
+results concentrated in SensorTamper-v0 because the other proxy-only monitor
+tasks collapse under label degeneracy. The strongest honest version of the
+paper is therefore a compact benchmark and evaluation-methodology contribution,
+not a general RL method paper. For a workshop audience, that is a useful
+message: benchmark leakage and label degeneracy are not side issues, but part
+of what a trustworthy diagnostic benchmark must surface.
 
 \bibliographystyle{plainnat}
 \bibliography{references}

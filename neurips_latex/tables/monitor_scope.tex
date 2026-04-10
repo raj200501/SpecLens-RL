@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{p{1.75cm} p{1.3cm} p{1.45cm} p{2.45cm}}
+\toprule
+Environment & Hack labels & Failure labels & Hack monitor task \\
+\midrule
+ProxyFarming & 72/72 & 72/72 & Degenerate \\
+SensorTamper & 58/72 & 72/72 & Accepted (restricted + rich) \\
+GemTimeout & 71/72 & 72/72 & Degenerate \\
+\bottomrule
+\end{tabular}
+}
+\caption{Proxy-only ID monitor scope. Only SensorTamper-v0 yields a nondegenerate hack-label mix under the second-pass protocol; failure labels collapse in all three environments.}
+\label{tab:monitor-scope}
+\end{table}

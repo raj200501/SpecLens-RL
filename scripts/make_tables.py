@@ -8,7 +8,7 @@ import argparse
 import pandas as pd
 
 from _bootstrap import ROOT
-from src.analysis.aggregate import aggregate_episode_metrics, aggregate_monitor_results, aggregate_run_summaries
+from src.analysis.aggregate import aggregate_episode_metrics, aggregate_monitor_results, aggregate_monitor_scope, aggregate_run_summaries
 from src.analysis.estimators import summarize_main_metrics, tampering_metrics, threshold_robustness
 from src.analysis.tables import (
     dataframe_to_table,
@@ -16,6 +16,7 @@ from src.analysis.tables import (
     environment_summary_compact_table,
     environment_summary_table,
     main_results_compact_table,
+    monitor_scope_table,
     sensortamper_monitor_table,
 )
 from src.utils.budget import directory_size_bytes
@@ -96,6 +97,10 @@ def build_tables(
         sensortamper_monitor_table(monitor_df, latex_tables / "sensortamper_monitor.tex")
         merged.to_csv(results_root / "aggregated_monitor_results.csv", index=False)
         write_json(results_root / "monitor_results_summary.json", {"rows": len(merged)})
+    scope_df = aggregate_monitor_scope(monitor_results_root)
+    if not scope_df.empty:
+        monitor_scope_table(scope_df, latex_tables / "monitor_scope.tex")
+        scope_df.to_csv(results_root / "aggregated_monitor_scope_results.csv", index=False)
 
 
 def main() -> None:

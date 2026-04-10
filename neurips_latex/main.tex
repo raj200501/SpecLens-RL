@@ -15,7 +15,7 @@
 
 \newcommand{\framework}{SpecLens-RL}
 
-\title{\framework: A Compact Framework for Diagnosing Specification Failures in Reinforcement Learning}
+\title{\framework: A Compact Benchmark for Diagnosing Specification Failures in Reinforcement Learning}
 \workshoptitle{NeurIPS 2026 Workshop Submission (Target Workshop TBD)}
 \author{Anonymous Authors}
 
@@ -24,18 +24,20 @@
 \maketitle
 
 \begin{abstract}
-We present \framework, a compact benchmark and evaluation protocol for diagnosing
-specification failures in reinforcement learning. The core contribution is not a
-new optimization method, but a task tuple that separates proxy reward, hidden
-true objective, corruption channels, monitor channels, distribution shift, and
-policy family. We instantiate this tuple in three symbolic environments that
-surface proxy gaming, explicit tampering, delayed-cost overoptimization, and
-monitorability failures under laptop-scale compute budgets. The package
-includes leakage-aware monitor evaluation and strict artifact rules that tie
-claims directly to saved outputs. Empirically, \framework exposes large
-proxy--true objective gaps and explicit tampering risk across the benchmark,
-while leakage-cleared monitor evidence is feasible but narrow, with accepted
-results concentrated in SensorTamper-v0.
+We present \framework, a compact benchmark and evaluation protocol for
+diagnosing specification failures in reinforcement learning. Rather than
+proposing a new optimizer, \framework defines a task tuple that separates proxy
+reward, hidden true objective, corruption channels, monitor channels,
+distribution shift, and policy family. We instantiate that tuple in three
+symbolic environments and evaluate it under strict artifact and leakage rules.
+Across all three tasks, proxy-trained policies diverge sharply from oracle
+policies on the hidden objective; SensorTamper-v0 additionally exposes a
+behaviorally active corruption channel; and proxy-only monitor evaluation shows
+that valid leakage-cleared monitor evidence is possible but narrow, because
+only SensorTamper-v0 yields a nondegenerate hack-label mix under the current
+protocol. The result is a compact benchmark for studying reward
+misspecification, tampering, and the limits of monitorability claims under
+controlled compute budgets.
 \end{abstract}
 
 \input{sections/intro}
