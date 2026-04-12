@@ -22,3 +22,15 @@
 - Re-check the ED FAQ and handbook before submission.
 - Revisit workshop targeting only if a later official workshop CFP is a clearly
   better fit than ED.
+
+## Current compliance posture
+
+- The manuscript uses the official `neurips_2026.sty` package in anonymous
+  `eandd` mode.
+- The main paper body is intentionally kept below the main-track nine-content-
+  page cap, which is a conservative default while no named 2026 workshop CFP is
+  publicly available.
+- The paper now includes the official NeurIPS 2026 checklist plus a
+  reproducibility appendix, which are required or strongly expected by the
+  current NeurIPS submission instructions even though they do not count toward
+  the content-page limit.

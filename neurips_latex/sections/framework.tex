@@ -22,8 +22,8 @@ family of OOD perturbations used to probe robustness.
 
 \paragraph{Policy family.}
 $\Pi$ denotes the learning family considered. We keep $\Pi$ deliberately small:
-standard PPO trained on proxy reward, plus an oracle PPO baseline trained on
-the hidden objective for diagnosis only.
+standard PPO \citep{schulman2017ppo} trained on proxy reward, plus an oracle
+PPO baseline trained on the hidden objective for diagnosis only.
 
 \begin{figure*}[t]
 \centering
@@ -53,6 +53,9 @@ proxy reward and can induce delayed-cost overoptimization.
 These tasks are not meant as realistic deployment simulators. They are symbolic
 model organisms: deliberately small settings in which proxy exploitation,
 tampering, and monitoring failures can be instrumented and recalibrated quickly.
+The OOD variants are likewise symbolic stress tests. They probe whether an
+exploit persists under small structural changes, but they are not intended as a
+claim of broad real-world generalization.
 
 \subsection{Metric Suite}
 The metric suite is intentionally multi-part rather than collapsed into a
@@ -83,5 +86,7 @@ channels contain only plausible audit traces such as observations, actions,
 reward history, and coarse trajectory summaries; rich channels add additional
 audit-side summaries but exclude direct label-source variables. Before any
 monitor result is accepted, the repository runs leakage diagnostics that try to
-predict the target from suspicious individual features or source variables. A
-monitor result is reported only if the feature set passes that screening.
+predict the target from suspicious individual features or source variables. We
+flag failure if a suspicious single feature reaches AUC $\ge 0.98$ or a
+suspicious feature bundle reaches AUC $\ge 0.995$. A monitor result is reported
+only if the feature set passes that screening.

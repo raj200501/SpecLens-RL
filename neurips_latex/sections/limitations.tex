@@ -5,6 +5,14 @@ about frontier-scale systems. Their value lies in clarity and control: they
 make proxy exploitation, tampering, and monitor leakage easy to instrument, but
 they omit many complexities of real-world embodied or language-based settings.
 
+The empirical matrix is also intentionally small. We use three seeds, a tiny
+policy family, and one oracle diagnostic baseline so that the benchmark remains
+laptop-scale and easy to audit. That design is appropriate for a diagnostic
+evaluation paper, but it is not enough for fine-grained statistical claims
+about small performance differences or for comparing a large menu of realistic
+RL alternatives. Future work should add more non-oracle baselines and broader
+seed sweeps without weakening the benchmark's explicit task structure.
+
 Monitorability claims in particular should be interpreted cautiously. A monitor
 that performs well on one symbolic environment with carefully screened features
 does not imply a practical oversight system for deployment, and a poor monitor

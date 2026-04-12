@@ -5,7 +5,7 @@ tuple and evaluation protocol that separate proxy reward, hidden objective,
 corruption channels, monitor channels, distribution shift, and policy family.
 The benchmark instantiates that tuple in three symbolic environments and ties
 analysis outputs directly to paper artifacts through a reproducible local
-pipeline.
+pipeline, appendix, and checklist.
 
 The strongest empirical claim is conservative and useful. Across three symbolic
 tasks, \framework exposes large specification gaps and explicit tampering risk,
@@ -16,6 +16,6 @@ ablation further shows that the learned proxy exploit depends on the active
 corruption channel rather than surviving as a generic policy pathology. The
 strongest honest version of the paper is therefore a compact benchmark and
 evaluation-methodology contribution, not a general RL method paper. For a
-benchmark-evaluation audience, that is a useful message: benchmark leakage and
-label degeneracy are not side issues, but part of what a trustworthy
-diagnostic benchmark must surface.
+benchmark-evaluation audience, that is a useful message: benchmark leakage,
+label degeneracy, and reproducibility constraints are not side issues, but part
+of what a trustworthy diagnostic benchmark must surface.
