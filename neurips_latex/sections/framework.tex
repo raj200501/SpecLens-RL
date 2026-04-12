@@ -88,5 +88,21 @@ audit-side summaries but exclude direct label-source variables. Before any
 monitor result is accepted, the repository runs leakage diagnostics that try to
 predict the target from suspicious individual features or source variables. We
 flag failure if a suspicious single feature reaches AUC $\ge 0.98$ or a
-suspicious feature bundle reaches AUC $\ge 0.995$. A monitor result is reported
-only if the feature set passes that screening.
+suspicious feature bundle reaches AUC $\ge 0.995$.
+
+We call a monitor task \emph{admissible} only if it satisfies both label and
+leakage conditions:
+\[
+1 \le n_{+}(y) \le n-1,\qquad
+\mathrm{AUC}_{\mathrm{feat}} < 0.98,\qquad
+\mathrm{AUC}_{\mathrm{bundle}} < 0.995.
+\]
+The first condition rules out degenerate label structure, while the second and
+third rule out nearly direct recovery of the target from suspicious individual
+features or bundles. Here $n_{+}(y)$ denotes the number of positive labels in
+the grouped evaluation set, while $\mathrm{AUC}_{\mathrm{feat}}$ and
+$\mathrm{AUC}_{\mathrm{bundle}}$ denote the best suspicious-feature and
+suspicious-bundle leakage probes respectively. Only admissible monitor tasks
+are allowed into the main tables and figures. This turns ``monitorability''
+from a vague aspiration into a concrete acceptance test for whether a monitor
+result is meaningful enough to report at all.

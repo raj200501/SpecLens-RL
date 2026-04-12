@@ -14,6 +14,19 @@ import pandas as pd
 from src.utils.io_utils import ensure_dir
 
 matplotlib.use("Agg")
+plt.rcParams.update(
+    {
+        "font.family": "serif",
+        "font.serif": ["STIXGeneral", "DejaVu Serif"],
+        "mathtext.fontset": "stix",
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.titleweight": "semibold",
+        "axes.labelsize": 10,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
+    }
+)
 
 
 METHOD_LABELS = {
@@ -130,12 +143,30 @@ def proxy_vs_true_scatter(df: pd.DataFrame, output_path: str | Path) -> None:
     plt.close(fig)
 
 
-def main_results_panel(main_df: pd.DataFrame, output_path: str | Path) -> None:
+def main_results_panel(
+    main_df: pd.DataFrame,
+    output_path: str | Path,
+    variability_df: pd.DataFrame | None = None,
+) -> None:
     ensure_dir(Path(output_path).parent)
     envs = [env for env in ["ProxyFarming-v0", "SensorTamper-v0", "GemTimeout-v0"] if env in set(main_df["env"])]
-    fig, axes = plt.subplots(2, len(envs), figsize=(11.2, 5.8), sharey="row")
+    fig, axes = plt.subplots(2, len(envs), figsize=(11.4, 6.0), sharey="row")
     bar_width = 0.28
     offsets = {"id": -0.16, "ood": 0.16}
+    variability_df = variability_df if variability_df is not None else pd.DataFrame()
+
+    def lookup_std(env_name: str, method: str, split_name: str, metric_prefix: str) -> float:
+        if variability_df.empty:
+            return 0.0
+        row = variability_df[
+            (variability_df["env"] == env_name)
+            & (variability_df["method"] == method)
+            & (variability_df["split"] == split_name)
+        ]
+        if row.empty:
+            return 0.0
+        value = row.iloc[0][f"{metric_prefix}_std"]
+        return float(value) if pd.notna(value) else 0.0
 
     for col, env_name in enumerate(envs):
         env_df = main_df[main_df["env"] == env_name].copy()
@@ -144,6 +175,7 @@ def main_results_panel(main_df: pd.DataFrame, output_path: str | Path) -> None:
         x = np.arange(len(env_df))
 
         for split_name, metric_name in [("id", "true_score_ID"), ("ood", "true_score_OOD")]:
+            yerr = [lookup_std(env_name, method, split_name, "true_score") for method in env_df["method"]]
             axes[0, col].bar(
                 x + offsets[split_name],
                 env_df[metric_name],
@@ -152,8 +184,12 @@ def main_results_panel(main_df: pd.DataFrame, output_path: str | Path) -> None:
                 edgecolor="#243B53",
                 linewidth=0.8,
                 hatch=SPLIT_HATCH[split_name.upper()],
+                yerr=yerr,
+                capsize=2.4,
+                error_kw={"elinewidth": 0.8, "ecolor": "#243B53"},
             )
         for split_name, metric_name in [("id", "hacking_incidence_ID"), ("ood", "hacking_incidence_OOD")]:
+            yerr = [lookup_std(env_name, method, split_name, "hack") for method in env_df["method"]]
             axes[1, col].bar(
                 x + offsets[split_name],
                 env_df[metric_name],
@@ -162,17 +198,22 @@ def main_results_panel(main_df: pd.DataFrame, output_path: str | Path) -> None:
                 edgecolor="#243B53",
                 linewidth=0.8,
                 hatch=SPLIT_HATCH[split_name.upper()],
+                yerr=yerr,
+                capsize=2.4,
+                error_kw={"elinewidth": 0.8, "ecolor": "#243B53"},
             )
 
         axes[0, col].set_title(ENV_LABELS.get(env_name, env_name), fontsize=11, pad=8)
-        axes[0, col].axhline(0.0, color="#9FB3C8", linewidth=0.9)
-        axes[1, col].axhline(0.0, color="#9FB3C8", linewidth=0.9)
+        axes[0, col].axhline(0.0, color="#9FB3C8", linewidth=0.9, zorder=0)
+        axes[1, col].axhline(0.0, color="#9FB3C8", linewidth=0.9, zorder=0)
         axes[0, col].set_xticks(x)
         axes[0, col].set_xticklabels([])
         axes[1, col].set_xticks(x)
-        axes[1, col].set_xticklabels([METHOD_LABELS[m] for m in env_df["method"]], fontsize=9)
+        axes[1, col].set_xticklabels(["Proxy", "Oracle"], fontsize=9)
         axes[0, col].grid(axis="y", alpha=0.18, linewidth=0.7)
         axes[1, col].grid(axis="y", alpha=0.18, linewidth=0.7)
+        for row in range(2):
+            axes[row, col].set_axisbelow(True)
 
     axes[0, 0].set_ylabel("True score", fontsize=10)
     axes[1, 0].set_ylabel("Hack incidence", fontsize=10)
@@ -188,7 +229,8 @@ def main_results_panel(main_df: pd.DataFrame, output_path: str | Path) -> None:
         Line2D([0], [0], color=METHOD_COLORS["ORACLE_TRUE_PPO"], lw=8, label="Oracle True PPO"),
     ]
     fig.legend(handles=legend_items, loc="upper center", bbox_to_anchor=(0.5, 1.03), ncol=4, frameon=False, fontsize=9)
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.text(0.5, 0.005, "Bars show means over three seeds; whiskers show seed standard deviation.", ha="center", va="bottom", fontsize=8.7, color="#486581")
+    fig.tight_layout(rect=(0, 0.03, 1, 0.95))
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
 

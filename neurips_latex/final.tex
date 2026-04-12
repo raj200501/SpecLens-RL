@@ -16,7 +16,7 @@
 
 \newcommand{\framework}{SpecLens-RL}
 
-\title{\framework: A Compact Benchmark and Evaluation Protocol for Diagnosing Specification Failures in Reinforcement Learning}
+\title{\framework: An Auditable Benchmark for Reward Misspecification, Tampering, and Monitorability in Reinforcement Learning}
 \author{Anonymous Authors}
 
 \begin{document}
@@ -24,23 +24,25 @@
 \maketitle
 
 \begin{abstract}
-We present \framework, a compact benchmark and evaluation protocol for
-diagnosing specification failures in reinforcement learning. The benchmark
-factorizes each task into environment dynamics, proxy reward, hidden true
-objective, corruption channel, monitor channel, distribution shift, and policy
-family, so benchmark claims can be tied to explicit assumptions rather than
-bundled environment details. We instantiate this protocol in three symbolic
-environments, pair it with an executable artifact containing schema exports,
-leakage diagnostics, and paper assets linked directly to saved outputs, and
-evaluate proxy-trained PPO against an oracle diagnostic baseline under fixed
-laptop-scale budgets. Across all three tasks, proxy training underperforms
-oracle training on the hidden objective; SensorTamper-v0 additionally exposes a
-behaviorally active tamper channel whose removal collapses the learned exploit;
-and monitor evaluation is informative but narrow, because only SensorTamper-v0
-yields a nondegenerate, leakage-cleared hack-monitor task under the current
-proxy-only protocol. The contribution is therefore not a new RL algorithm, but
-a compact evaluation benchmark that makes reward misspecification, tampering,
-and monitorability claims more explicit, reproducible, and falsifiable.
+We present \framework, an auditable benchmark for reward misspecification,
+tampering, and monitorability in reinforcement learning. Each task is
+factorized into environment dynamics, proxy reward, hidden true objective,
+corruption channel, monitor channel, distribution shift, and policy family, so
+empirical claims attach to explicit assumptions instead of bundled environment
+details. We instantiate this protocol in three symbolic environments, pair it
+with an executable artifact that regenerates paper assets from saved outputs,
+and evaluate proxy-trained PPO against an oracle diagnostic baseline under
+fixed laptop-scale budgets. Across all three environments, proxy training
+underperforms oracle training on the hidden objective, and across every
+environment/split pair the best proxy seed still scores below the worst oracle
+seed on true score. SensorTamper-v0 further exposes a behaviorally active
+tamper channel whose removal collapses the learned exploit. For monitoring, we
+formalize an admissibility criterion based on label non-degeneracy and leakage
+screening; under the current proxy-only protocol, only SensorTamper-v0 yields
+an admissible hack-monitor task. The contribution is therefore not a new RL
+algorithm, but a compact, artifact-backed benchmark that makes reward
+misspecification, tampering, and monitorability claims more explicit,
+reproducible, and falsifiable.
 \end{abstract}
 
 \section{Introduction}
@@ -86,16 +88,26 @@ and result sentences are populated only from saved outputs. If a monitor leaks,
 or a metric degenerates, the paper records that fact rather than smoothing it
 away.
 
+The paper's methodological claim rests on three design principles. First,
+\emph{factorization}: task dynamics, proxy reward, hidden objective, corruption
+channel, monitor channel, shift family, and policy family should be explicit
+benchmark components rather than bundled implementation details. Second,
+\emph{admissibility}: monitor results should be reportable only when the label
+structure is nondegenerate and leakage checks pass. Third, \emph{artifact
+binding}: paper claims should point back to saved outputs, not to hand-copied
+numbers or one-off notebooks.
+
 Concretely, we make four contributions. First, we package specification
 diagnosis as an explicit task tuple rather than a loose environment suite.
 Second, we instantiate that tuple in three symbolic environments that expose
 large proxy--true gaps across distinct failure modes, including explicit
-corruption-channel behavior in SensorTamper-v0. Third, we add leakage-aware
-monitor evaluation and report when the monitor task itself is degenerate; under
-the current proxy-only protocol, only SensorTamper-v0 yields a nondegenerate
-hack-monitor problem. Fourth, we ship an executable artifact whose paper-facing
-figures, tables, and appendix claims are tied directly to saved outputs, so the
-benchmark can be audited as an evaluation object rather than only read as prose.
+corruption-channel behavior in SensorTamper-v0. Third, we formalize a
+leakage-aware admissibility rule for monitor evaluation and report when the
+monitor task itself fails that rule; under the current proxy-only protocol,
+only SensorTamper-v0 yields an admissible hack-monitor problem. Fourth, we
+ship an executable artifact whose paper-facing figures, tables, and appendix
+claims are tied directly to saved outputs, so the benchmark can be audited as
+an evaluation object rather than only read as prose.
 
 This is therefore an evaluation paper, not a new RL method paper. The benchmark
 should be judged by whether it makes specification failures and monitorability
@@ -108,7 +120,6 @@ a single environment rather than spread uniformly across the suite. That makes
 \framework strongest as a compact benchmark and evaluation-methodology paper
 for reward misspecification, tampering, and monitorability, rather than a claim
 of broad safety coverage or a new RL solution method.
-
 \section{Related Work}
 Work on AI safety in reinforcement learning has long emphasized the gap between
 an implemented reward signal and the objective a designer actually intends.
@@ -139,22 +150,31 @@ of the task definition rather than an optional stress test. The benchmark asks
 not only whether proxy gaming occurs, but how it changes under symbolic OOD
 perturbations.
 
+Benchmark methodology is also part of the relevant literature. Behaviour Suite
+for Reinforcement Learning (bsuite) argued for compact, diagnosis-oriented
+testbeds whose value lies in the structure of the evaluation rather than in a
+single aggregate leaderboard \citep{osband2020bsuite}. On the reporting side,
+\citet{agarwal2021precipice} show that deep-RL conclusions can move
+substantially under limited runs and unstable evaluation choices. That lesson
+matters here: a specification benchmark is only useful if it reports
+degeneracy, leakage, and cross-seed ordering honestly rather than compressing
+everything into a single headline score.
+
 \framework is closest to compact symbolic safety benchmarks, but it differs in
 the object it standardizes. AI Safety Gridworlds showed that small
 model-organism environments can be scientifically useful \citep{leike2017ai};
 \framework keeps that spirit while making proxy reward, hidden objective,
-corruption channel, monitor channel, shift family, and policy family explicit
-parts of a reusable task specification. We likewise treat monitor leakage and
-label degeneracy as benchmark outcomes, not as cleanup steps after a classifier
-is trained.
+corruption channel, monitor channel, shift family, policy family, and monitor
+admissibility explicit parts of a reusable task specification. We likewise
+treat monitor leakage and label degeneracy as benchmark outcomes, not as
+cleanup steps after a classifier is trained.
 
 Our contribution is therefore not another environment suite alone. It is a
 compact synthesis across three threads: small symbolic safety environments,
 formal treatments of reward hacking and tampering, and evaluation methodology
-for benchmark claims. \framework contributes explicit task structure, metric
-discipline, leakage-aware monitoring, and artifact-backed reporting rather than
-a new optimization technique.
-
+for benchmark claims. \framework contributes explicit task structure, monitor
+admissibility, metric discipline, leakage-aware monitoring, and artifact-backed
+reporting rather than a new optimization technique.
 \section{Task Tuple and Evaluation Protocol}
 \subsection{Task Tuple}
 We define a specification-diagnostic task as
@@ -245,9 +265,24 @@ audit-side summaries but exclude direct label-source variables. Before any
 monitor result is accepted, the repository runs leakage diagnostics that try to
 predict the target from suspicious individual features or source variables. We
 flag failure if a suspicious single feature reaches AUC $\ge 0.98$ or a
-suspicious feature bundle reaches AUC $\ge 0.995$. A monitor result is reported
-only if the feature set passes that screening.
+suspicious feature bundle reaches AUC $\ge 0.995$.
 
+We call a monitor task \emph{admissible} only if it satisfies both label and
+leakage conditions:
+\[
+1 \le n_{+}(y) \le n-1,\qquad
+\mathrm{AUC}_{\mathrm{feat}} < 0.98,\qquad
+\mathrm{AUC}_{\mathrm{bundle}} < 0.995.
+\]
+The first condition rules out degenerate label structure, while the second and
+third rule out nearly direct recovery of the target from suspicious individual
+features or bundles. Here $n_{+}(y)$ denotes the number of positive labels in
+the grouped evaluation set, while $\mathrm{AUC}_{\mathrm{feat}}$ and
+$\mathrm{AUC}_{\mathrm{bundle}}$ denote the best suspicious-feature and
+suspicious-bundle leakage probes respectively. Only admissible monitor tasks
+are allowed into the main tables and figures. This turns ``monitorability''
+from a vague aspiration into a concrete acceptance test for whether a monitor
+result is meaningful enough to report at all.
 \section{Experimental Setup}
 We evaluate three symbolic tasks, two policy families, and deterministic ID/OOD
 variants under a fixed laptop-scale budget. Each environment/method pair uses
@@ -275,11 +310,17 @@ locally on an 8-core Apple Silicon machine under Python 3.11; exact commands,
 package versions, seed-variability summaries, and resource accounting are
 provided in the appendix and checked-in artifact bundle.
 
+In line with recent warnings about statistical instability in deep-RL
+evaluation \citep{agarwal2021precipice}, we keep the inferential claims modest:
+the paper reports seed standard deviations and cross-seed dominance margins,
+but does not claim fine-grained significance beyond what three seeds can
+support.
+
 \begin{table*}[t]
 \centering
-\scriptsize
+\small
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{l l l l l l}
+\begin{tabular}{p{1.65cm} p{1.8cm} p{2.0cm} p{2.1cm} p{2.5cm} p{2.2cm}}
 \toprule
 Environment & Proxy reward & True objective & Corruption channel & Monitor channels & OOD shift \\
 \midrule
@@ -292,8 +333,6 @@ GemTimeout & Gem reward & Reach goal before timeout & Gem detours trade off with
 \caption{Compact summary of the three benchmark environments used in the main paper.}
 \label{tab:env-summary-compact}
 \end{table*}
-
-
 \section{Results}
 \begin{figure*}[t]
 \centering
@@ -301,7 +340,8 @@ GemTimeout & Gem reward & Reach goal before timeout & Gem detours trade off with
 \caption{Main benchmark outcomes. Across all three environments, proxy-trained
 policies underperform oracle policies on true score. OOD behavior is mixed
 rather than monotone: some shifts reduce exploit frequency while leaving a
-large true-objective gap.}
+large true-objective gap. Bars show means over three seeds; whiskers show seed
+standard deviation.}
 \label{fig:main-results}
 \end{figure*}
 
@@ -318,13 +358,15 @@ oracle reaches $1.000$ with zero hack incidence. Across proxy-trained policies,
 proxy--true correlation is non-positive in every environment. The qualitative
 ordering is also seed-robust: across every environment and both ID/OOD splits,
 the strongest proxy seed still scores below the weakest oracle seed on true
-score.
+score. Appendix Tables~\ref{tab:seed-variability} and
+\ref{tab:seed-dominance} show the corresponding seed variability and positive
+cross-seed dominance margins explicitly.
 
 \begin{table}[t]
 \centering
-\scriptsize
+\small
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{l l c c c c}
+\begin{tabular}{p{1.8cm} p{2.05cm} c c c c}
 \toprule
 Environment & Policy & ID true & OOD true & ID hack & OOD hack \\
 \midrule
@@ -342,7 +384,6 @@ GemTimeout & Proxy PPO & -0.153 & -0.065 & 1.000 & 0.667 \\
 \caption{Main specification-gap results used in the paper narrative. Higher true score is better; higher hack incidence indicates more frequent proxy exploitation.}
 \label{tab:main-results-compact}
 \end{table}
-
 
 \paragraph{Tampering is explicitly measurable.}
 SensorTamper does more than show generic proxy failure: it isolates a concrete
@@ -373,15 +414,15 @@ in SensorTamper-v0, and Table~\ref{tab:monitor-scope} shows why. Under
 proxy-only ID rollouts, SensorTamper yields $58/72$ positive hack labels,
 whereas ProxyFarming is $72/72$ positive and GemTimeout is $71/72$ positive;
 failure labels collapse to a single class in all three environments. Only
-SensorTamper therefore supports a nondegenerate grouped hack-monitor task under
-the current protocol. Within that one valid case, a restricted
+SensorTamper therefore satisfies the monitor-admissibility criterion from
+Section~2 under the current protocol. Within that one valid case, a restricted
 logistic-regression monitor reaches ROC-AUC $0.936$ and PR-AUC $0.962$; the
 corresponding rich-channel model reaches $0.964$ and $0.986$. The gain is real
 but small, which is scientifically useful: richer audit information helps, but
 the restricted channel is already behaviorally informative. The negative result
 in ProxyFarming and GemTimeout is structural rather than cosmetic: under the
 accepted leakage-cleared proxy-only setup, those environments do not currently
-define a trustworthy grouped hack-monitor problem.
+define an admissible grouped hack-monitor problem.
 
 \begin{table}[t]
 \centering
@@ -399,7 +440,6 @@ GemTimeout & 71/72 & 72/72 & Degenerate & Degenerate \\
 \label{tab:monitor-scope}
 \end{table}
 
-
 \paragraph{Why this methodological result matters.}
 The benchmark's value is not that it solves monitoring. It is that it makes a
 failure mode visible: monitor evaluation can collapse under label structure or
@@ -407,7 +447,6 @@ leakage assumptions even in small symbolic environments. \framework therefore
 supports two diagnoses at once: it measures proxy and tampering failures, and
 it records when the monitoring problem itself is not yet well posed enough to
 support a trustworthy claim.
-
 \section{Limitations}
 \framework is a measurement benchmark, not a realistic deployment simulator.
 The environments are symbolic model organisms and cannot support strong claims
@@ -436,7 +475,6 @@ failure modes the benchmark author chose to instantiate. Future work should be
 judged not only by whether it enlarges the suite, but by whether it preserves
 the explicit task tuple, artifact discipline, and leakage-aware evaluation
 protocol introduced here.
-
 \section{Broader Impact}
 The positive intended impact of \framework is better evaluation discipline for
 reinforcement-learning safety claims. Compact, executable benchmarks can make
@@ -451,15 +489,15 @@ untouched. We mitigate that risk by keeping the environments small and
 instrumented, by making conservative claims about scope, and by reporting
 degenerate or leakage-sensitive monitor outcomes instead of presenting
 monitoring as solved.
-
 \section{Conclusion}
-We presented \framework, a compact framework for diagnosing specification
+We presented \framework, an auditable benchmark for diagnosing specification
 failures in reinforcement learning. The core contribution is a reusable task
 tuple and evaluation protocol that separate proxy reward, hidden objective,
-corruption channels, monitor channels, distribution shift, and policy family.
-The benchmark instantiates that tuple in three symbolic environments and ties
-analysis outputs directly to paper artifacts through a reproducible local
-pipeline, appendix, and checklist.
+corruption channels, monitor channels, distribution shift, and policy family,
+and that couple those choices to explicit admissibility rules for monitoring
+and to artifact-backed reporting. The benchmark instantiates that protocol in
+three symbolic environments and ties analysis outputs directly to paper assets
+through a reproducible local pipeline, appendix, and checklist.
 
 The strongest empirical claim is conservative and useful. Across three symbolic
 tasks, \framework exposes large specification gaps and explicit tampering risk,
@@ -472,8 +510,11 @@ strongest honest version of the paper is therefore a compact benchmark and
 evaluation-methodology contribution, not a general RL method paper. For a
 benchmark-evaluation audience, that is a useful message: benchmark leakage,
 label degeneracy, and reproducibility constraints are not side issues, but part
-of what a trustworthy diagnostic benchmark must surface.
-
+of what a trustworthy diagnostic benchmark must surface. If the paper is useful
+to future work, it should be because it makes benchmark claims harder to bluff:
+the task tuple is explicit, monitor results must be admissible before they are
+reportable, and the manuscript stays attached to saved evidence all the way to
+the final PDF.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
@@ -503,8 +544,10 @@ the saved artifact roots used in the paper.
 
 \paragraph{Seed variability and ranking stability.}
 Table~\ref{tab:seed-variability} reports ID seed variability for the main proxy
-and oracle quantities. We do not claim tight statistical confidence from only
-three seeds, but the benchmark ranking is still stable in a stronger sense:
+and oracle quantities, while Table~\ref{tab:seed-dominance} reports the more
+decision-relevant cross-seed dominance margins. We do not claim tight
+statistical confidence from only three seeds, but the benchmark ranking is
+still stable in a stronger sense:
 for every environment and both ID/OOD splits,
 \[
 \max_{\text{seed}} \; \text{true\_score}(\text{Proxy PPO})
@@ -513,8 +556,9 @@ for every environment and both ID/OOD splits,
 \]
 Thus the proxy-versus-oracle gap is not a single-seed artifact.
 
-\begin{table}[h]
+\begin{table}[t]
 \centering
+\small
 \begin{tabular}{l c c c}
 \toprule
 Environment & Proxy ID true & Proxy ID hack & Oracle ID true \\
@@ -527,7 +571,26 @@ GemTimeout & -0.153 +/- 0.053 & 1.000 +/- 0.000 & 1.000 +/- 0.000 \\
 \caption{ID seed variability across the three proxy and oracle runs. Entries are mean +/- standard deviation over seeds.}
 \label{tab:seed-variability}
 \end{table}
-
+\begin{table}[t]
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l c c c c}
+\toprule
+Environment & Split & Best proxy seed & Worst oracle seed & Margin \\
+\midrule
+ProxyFarming & ID & -1.950 & 0.975 & 2.925 \\
+ProxyFarming & OOD & 0.050 & 0.575 & 0.525 \\
+SensorTamper & ID & -1.863 & 1.000 & 2.862 \\
+SensorTamper & OOD & 0.262 & 0.525 & 0.262 \\
+GemTimeout & ID & -0.092 & 1.000 & 1.092 \\
+GemTimeout & OOD & 0.012 & 1.000 & 0.988 \\
+\bottomrule
+\end{tabular}
+}
+\caption{Cross-seed dominance margins on true score. A positive margin means the best proxy seed still scores below the worst oracle seed for that environment and split.}
+\label{tab:seed-dominance}
+\end{table}
 
 \paragraph{Compute and storage.}
 The full second-pass rerun completed in 102.2 seconds wall-clock. The only
@@ -546,7 +609,6 @@ result bundle, plotting and table-generation scripts, and the NeurIPS paper
 package. Those assets are documented by the repository \texttt{README.md},
 \texttt{neurips\_latex/BUILD.md}, schema definitions, and the generated result
 inventory under \texttt{results/}.
-
 \section*{NeurIPS Paper Checklist}
 
 \begin{enumerate}
@@ -642,7 +704,7 @@ inventory under \texttt{results/}.
 \item {\bf Experiment statistical significance}
     \item[] Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the statistical significance of the experiments?
     \item[] Answer: \answerYes{}
-    \item[] Justification: Appendix~A reports seed variability as mean +/- standard deviation over the three seeds for the core ID proxy/oracle quantities, and the text explicitly avoids stronger inferential claims than that summary supports.
+    \item[] Justification: Appendix~A reports seed variability as mean +/- standard deviation over the three seeds for the core proxy/oracle quantities and additionally reports cross-seed dominance margins showing that the best proxy seed still remains below the worst oracle seed on true score in every environment and split; the text explicitly avoids stronger inferential claims than that summary supports.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.
@@ -767,6 +829,5 @@ inventory under \texttt{results/}.
     \end{itemize}
 
 \end{enumerate}
-
 
 \end{document}

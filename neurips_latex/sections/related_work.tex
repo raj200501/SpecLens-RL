@@ -28,18 +28,28 @@ of the task definition rather than an optional stress test. The benchmark asks
 not only whether proxy gaming occurs, but how it changes under symbolic OOD
 perturbations.
 
+Benchmark methodology is also part of the relevant literature. Behaviour Suite
+for Reinforcement Learning (bsuite) argued for compact, diagnosis-oriented
+testbeds whose value lies in the structure of the evaluation rather than in a
+single aggregate leaderboard \citep{osband2020bsuite}. On the reporting side,
+\citet{agarwal2021precipice} show that deep-RL conclusions can move
+substantially under limited runs and unstable evaluation choices. That lesson
+matters here: a specification benchmark is only useful if it reports
+degeneracy, leakage, and cross-seed ordering honestly rather than compressing
+everything into a single headline score.
+
 \framework is closest to compact symbolic safety benchmarks, but it differs in
 the object it standardizes. AI Safety Gridworlds showed that small
 model-organism environments can be scientifically useful \citep{leike2017ai};
 \framework keeps that spirit while making proxy reward, hidden objective,
-corruption channel, monitor channel, shift family, and policy family explicit
-parts of a reusable task specification. We likewise treat monitor leakage and
-label degeneracy as benchmark outcomes, not as cleanup steps after a classifier
-is trained.
+corruption channel, monitor channel, shift family, policy family, and monitor
+admissibility explicit parts of a reusable task specification. We likewise
+treat monitor leakage and label degeneracy as benchmark outcomes, not as
+cleanup steps after a classifier is trained.
 
 Our contribution is therefore not another environment suite alone. It is a
 compact synthesis across three threads: small symbolic safety environments,
 formal treatments of reward hacking and tampering, and evaluation methodology
-for benchmark claims. \framework contributes explicit task structure, metric
-discipline, leakage-aware monitoring, and artifact-backed reporting rather than
-a new optimization technique.
+for benchmark claims. \framework contributes explicit task structure, monitor
+admissibility, metric discipline, leakage-aware monitoring, and artifact-backed
+reporting rather than a new optimization technique.

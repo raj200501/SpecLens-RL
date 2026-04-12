@@ -7,7 +7,7 @@ import argparse
 
 from _bootstrap import ROOT
 from src.analysis.aggregate import aggregate_episode_metrics, aggregate_monitor_results
-from src.analysis.estimators import summarize_main_metrics
+from src.analysis.estimators import seed_variability_summary, summarize_main_metrics
 from src.analysis.plots import (
     framework_overview,
     generalization_gap,
@@ -29,10 +29,11 @@ def build_plots(results_root=None, latex_root=None, monitor_results_root=None) -
     if episodes.empty:
         return
     main_df = summarize_main_metrics(episodes)
+    variability_df = seed_variability_summary(episodes)
     proxy_vs_true_scatter(episodes, latex_root / "figures" / "proxy_vs_true_scatter.pdf")
     hacking_incidence_bars(main_df, latex_root / "figures" / "hacking_incidence_bars.pdf")
     generalization_gap(main_df, latex_root / "figures" / "generalization_gap.pdf")
-    main_results_panel(main_df, latex_root / "figures" / "main_results_panel.pdf")
+    main_results_panel(main_df, latex_root / "figures" / "main_results_panel.pdf", variability_df=variability_df)
     tamper_df = episodes[episodes["env_name"] == "SensorTamper-v0"].groupby("method", as_index=False)["tamper_used"].mean()
     if not tamper_df.empty:
         tamper_df = tamper_df.rename(columns={"tamper_used": "tamper_utilization_rate"})

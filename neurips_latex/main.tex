@@ -16,7 +16,7 @@
 
 \newcommand{\framework}{SpecLens-RL}
 
-\title{\framework: A Compact Benchmark and Evaluation Protocol for Diagnosing Specification Failures in Reinforcement Learning}
+\title{\framework: An Auditable Benchmark for Reward Misspecification, Tampering, and Monitorability in Reinforcement Learning}
 \author{Anonymous Authors}
 
 \begin{document}
@@ -24,23 +24,25 @@
 \maketitle
 
 \begin{abstract}
-We present \framework, a compact benchmark and evaluation protocol for
-diagnosing specification failures in reinforcement learning. The benchmark
-factorizes each task into environment dynamics, proxy reward, hidden true
-objective, corruption channel, monitor channel, distribution shift, and policy
-family, so benchmark claims can be tied to explicit assumptions rather than
-bundled environment details. We instantiate this protocol in three symbolic
-environments, pair it with an executable artifact containing schema exports,
-leakage diagnostics, and paper assets linked directly to saved outputs, and
-evaluate proxy-trained PPO against an oracle diagnostic baseline under fixed
-laptop-scale budgets. Across all three tasks, proxy training underperforms
-oracle training on the hidden objective; SensorTamper-v0 additionally exposes a
-behaviorally active tamper channel whose removal collapses the learned exploit;
-and monitor evaluation is informative but narrow, because only SensorTamper-v0
-yields a nondegenerate, leakage-cleared hack-monitor task under the current
-proxy-only protocol. The contribution is therefore not a new RL algorithm, but
-a compact evaluation benchmark that makes reward misspecification, tampering,
-and monitorability claims more explicit, reproducible, and falsifiable.
+We present \framework, an auditable benchmark for reward misspecification,
+tampering, and monitorability in reinforcement learning. Each task is
+factorized into environment dynamics, proxy reward, hidden true objective,
+corruption channel, monitor channel, distribution shift, and policy family, so
+empirical claims attach to explicit assumptions instead of bundled environment
+details. We instantiate this protocol in three symbolic environments, pair it
+with an executable artifact that regenerates paper assets from saved outputs,
+and evaluate proxy-trained PPO against an oracle diagnostic baseline under
+fixed laptop-scale budgets. Across all three environments, proxy training
+underperforms oracle training on the hidden objective, and across every
+environment/split pair the best proxy seed still scores below the worst oracle
+seed on true score. SensorTamper-v0 further exposes a behaviorally active
+tamper channel whose removal collapses the learned exploit. For monitoring, we
+formalize an admissibility criterion based on label non-degeneracy and leakage
+screening; under the current proxy-only protocol, only SensorTamper-v0 yields
+an admissible hack-monitor task. The contribution is therefore not a new RL
+algorithm, but a compact, artifact-backed benchmark that makes reward
+misspecification, tampering, and monitorability claims more explicit,
+reproducible, and falsifiable.
 \end{abstract}
 
 \input{sections/intro}

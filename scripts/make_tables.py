@@ -9,7 +9,13 @@ import pandas as pd
 
 from _bootstrap import ROOT
 from src.analysis.aggregate import aggregate_episode_metrics, aggregate_monitor_results, aggregate_monitor_scope, aggregate_run_summaries
-from src.analysis.estimators import summarize_main_metrics, tampering_metrics, threshold_robustness
+from src.analysis.estimators import (
+    seed_dominance_summary,
+    seed_variability_summary,
+    summarize_main_metrics,
+    tampering_metrics,
+    threshold_robustness,
+)
 from src.analysis.tables import (
     dataframe_to_table,
     environment_main_table,
@@ -17,6 +23,8 @@ from src.analysis.tables import (
     environment_summary_table,
     main_results_compact_table,
     monitor_scope_table,
+    seed_dominance_table,
+    seed_variability_table,
     sensortamper_monitor_table,
 )
 from src.utils.budget import directory_size_bytes
@@ -61,6 +69,14 @@ def build_tables(
     if episodes.empty:
         return
     main_df = summarize_main_metrics(episodes)
+    variability_df = seed_variability_summary(episodes)
+    if not variability_df.empty:
+        variability_df.to_csv(results_root / "aggregated_seed_variability_results.csv", index=False)
+        seed_variability_table(variability_df, latex_tables / "seed_variability.tex")
+    dominance_df = seed_dominance_summary(episodes)
+    if not dominance_df.empty:
+        dominance_df.to_csv(results_root / "aggregated_seed_consistency_results.csv", index=False)
+        seed_dominance_table(dominance_df, latex_tables / "seed_dominance.tex")
     dataframe_to_table(main_df, latex_tables / "main_specification_results.tex", "Main specification-diagnostic results.", "tab:main-results")
     main_results_compact_table(main_df, latex_tables / "main_results_compact.tex")
     main_df.to_csv(results_root / "aggregated_main_results.csv", index=False)

@@ -92,3 +92,67 @@ def summarize_main_metrics(episodes: pd.DataFrame) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows)
+
+
+def summarize_seed_metrics(episodes: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    if episodes.empty:
+        return pd.DataFrame(rows)
+    grouped = episodes.groupby(["env_name", "method", "seed", "split"], as_index=False)
+    for (env_name, method, seed, split), group in grouped:
+        rows.append(
+            {
+                "env": env_name,
+                "method": method,
+                "seed": int(seed),
+                "split": str(split),
+                "true_score": float(group["true_score"].mean()),
+                "hack_rate": hacking_incidence(group),
+                "proxy_return": float(group["proxy_return"].mean()),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def seed_variability_summary(episodes: pd.DataFrame) -> pd.DataFrame:
+    seed_df = summarize_seed_metrics(episodes)
+    if seed_df.empty:
+        return pd.DataFrame()
+    summary = (
+        seed_df.groupby(["env", "method", "split"], as_index=False)
+        .agg(
+            true_score_mean=("true_score", "mean"),
+            true_score_std=("true_score", "std"),
+            hack_mean=("hack_rate", "mean"),
+            hack_std=("hack_rate", "std"),
+            proxy_return_mean=("proxy_return", "mean"),
+            proxy_return_std=("proxy_return", "std"),
+        )
+        .fillna(0.0)
+    )
+    return summary
+
+
+def seed_dominance_summary(episodes: pd.DataFrame) -> pd.DataFrame:
+    seed_df = summarize_seed_metrics(episodes)
+    if seed_df.empty:
+        return pd.DataFrame()
+    rows = []
+    for (env_name, split), group in seed_df.groupby(["env", "split"]):
+        proxy_scores = group.loc[group["method"] == "PROXY_PPO", "true_score"]
+        oracle_scores = group.loc[group["method"] == "ORACLE_TRUE_PPO", "true_score"]
+        if proxy_scores.empty or oracle_scores.empty:
+            continue
+        proxy_max = float(proxy_scores.max())
+        oracle_min = float(oracle_scores.min())
+        rows.append(
+            {
+                "env": env_name,
+                "split": str(split),
+                "proxy_max_true_score": proxy_max,
+                "oracle_min_true_score": oracle_min,
+                "dominance_margin": oracle_min - proxy_max,
+                "ordering_preserved": int(proxy_max < oracle_min),
+            }
+        )
+    return pd.DataFrame(rows)

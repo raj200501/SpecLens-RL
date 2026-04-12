@@ -41,16 +41,26 @@ and result sentences are populated only from saved outputs. If a monitor leaks,
 or a metric degenerates, the paper records that fact rather than smoothing it
 away.
 
+The paper's methodological claim rests on three design principles. First,
+\emph{factorization}: task dynamics, proxy reward, hidden objective, corruption
+channel, monitor channel, shift family, and policy family should be explicit
+benchmark components rather than bundled implementation details. Second,
+\emph{admissibility}: monitor results should be reportable only when the label
+structure is nondegenerate and leakage checks pass. Third, \emph{artifact
+binding}: paper claims should point back to saved outputs, not to hand-copied
+numbers or one-off notebooks.
+
 Concretely, we make four contributions. First, we package specification
 diagnosis as an explicit task tuple rather than a loose environment suite.
 Second, we instantiate that tuple in three symbolic environments that expose
 large proxy--true gaps across distinct failure modes, including explicit
-corruption-channel behavior in SensorTamper-v0. Third, we add leakage-aware
-monitor evaluation and report when the monitor task itself is degenerate; under
-the current proxy-only protocol, only SensorTamper-v0 yields a nondegenerate
-hack-monitor problem. Fourth, we ship an executable artifact whose paper-facing
-figures, tables, and appendix claims are tied directly to saved outputs, so the
-benchmark can be audited as an evaluation object rather than only read as prose.
+corruption-channel behavior in SensorTamper-v0. Third, we formalize a
+leakage-aware admissibility rule for monitor evaluation and report when the
+monitor task itself fails that rule; under the current proxy-only protocol,
+only SensorTamper-v0 yields an admissible hack-monitor problem. Fourth, we
+ship an executable artifact whose paper-facing figures, tables, and appendix
+claims are tied directly to saved outputs, so the benchmark can be audited as
+an evaluation object rather than only read as prose.
 
 This is therefore an evaluation paper, not a new RL method paper. The benchmark
 should be judged by whether it makes specification failures and monitorability

@@ -23,8 +23,10 @@ the saved artifact roots used in the paper.
 
 \paragraph{Seed variability and ranking stability.}
 Table~\ref{tab:seed-variability} reports ID seed variability for the main proxy
-and oracle quantities. We do not claim tight statistical confidence from only
-three seeds, but the benchmark ranking is still stable in a stronger sense:
+and oracle quantities, while Table~\ref{tab:seed-dominance} reports the more
+decision-relevant cross-seed dominance margins. We do not claim tight
+statistical confidence from only three seeds, but the benchmark ranking is
+still stable in a stronger sense:
 for every environment and both ID/OOD splits,
 \[
 \max_{\text{seed}} \; \text{true\_score}(\text{Proxy PPO})
@@ -34,6 +36,7 @@ for every environment and both ID/OOD splits,
 Thus the proxy-versus-oracle gap is not a single-seed artifact.
 
 \input{tables/seed_variability}
+\input{tables/seed_dominance}
 
 \paragraph{Compute and storage.}
 The full second-pass rerun completed in 102.2 seconds wall-clock. The only

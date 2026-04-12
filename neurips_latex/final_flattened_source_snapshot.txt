@@ -13,4 +13,5 @@ The flattened `final.tex` was assembled from:
 - [sections/conclusion.tex](neurips_latex/sections/conclusion.tex)
 - [sections/appendix_repro.tex](neurips_latex/sections/appendix_repro.tex)
 - [tables/seed_variability.tex](neurips_latex/tables/seed_variability.tex)
+- [tables/seed_dominance.tex](neurips_latex/tables/seed_dominance.tex)
 - [sections/checklist.tex](neurips_latex/sections/checklist.tex)

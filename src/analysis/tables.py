@@ -117,7 +117,7 @@ def environment_main_table(output_path: str | Path) -> None:
 
 
 def environment_summary_compact_table(output_path: str | Path) -> None:
-    shared_monitor = "Restricted trace; rich adds coarse audit state"
+    shared_monitor = "Restricted trace; rich audit summary"
     rows = [
         [
             "ProxyFarming",
@@ -262,6 +262,77 @@ def monitor_scope_table(scope_df: pd.DataFrame, output_path: str | Path) -> None
         ),
         label="tab:monitor-scope",
         column_spec="p{1.75cm} p{1.3cm} p{1.45cm} p{2.45cm}",
+        size_command=r"\small",
+        resize_to=r"\columnwidth",
+    )
+
+
+def seed_variability_table(variability_df: pd.DataFrame, output_path: str | Path) -> None:
+    if variability_df.empty:
+        return
+    rows = []
+    order = ["ProxyFarming-v0", "SensorTamper-v0", "GemTimeout-v0"]
+    for env_name in order:
+        env_df = variability_df[(variability_df["env"] == env_name) & (variability_df["split"] == "id")]
+        if env_df.empty:
+            continue
+        proxy = env_df[env_df["method"] == "PROXY_PPO"]
+        oracle = env_df[env_df["method"] == "ORACLE_TRUE_PPO"]
+        if proxy.empty or oracle.empty:
+            continue
+        proxy_row = proxy.iloc[0]
+        oracle_row = oracle.iloc[0]
+        rows.append(
+            [
+                ENV_LABELS.get(env_name, env_name),
+                f"{proxy_row['true_score_mean']:.3f} +/- {proxy_row['true_score_std']:.3f}",
+                f"{proxy_row['hack_mean']:.3f} +/- {proxy_row['hack_std']:.3f}",
+                f"{oracle_row['true_score_mean']:.3f} +/- {oracle_row['true_score_std']:.3f}",
+            ]
+        )
+    _write_custom_table(
+        output_path=output_path,
+        headers=["Environment", "Proxy ID true", "Proxy ID hack", "Oracle ID true"],
+        rows=rows,
+        caption="ID seed variability across the three proxy and oracle runs. Entries are mean +/- standard deviation over seeds.",
+        label="tab:seed-variability",
+        column_spec="l c c c",
+        size_command=r"\small",
+    )
+
+
+def seed_dominance_table(dominance_df: pd.DataFrame, output_path: str | Path) -> None:
+    if dominance_df.empty:
+        return
+    rows = []
+    split_labels = {"id": "ID", "ood": "OOD"}
+    order = ["ProxyFarming-v0", "SensorTamper-v0", "GemTimeout-v0"]
+    for env_name in order:
+        env_df = dominance_df[dominance_df["env"] == env_name]
+        if env_df.empty:
+            continue
+        env_df = env_df.copy()
+        env_df["split_order"] = env_df["split"].map({"id": 0, "ood": 1}).fillna(99)
+        for row in env_df.sort_values("split_order").itertuples(index=False):
+            rows.append(
+                [
+                    ENV_LABELS.get(row.env, row.env),
+                    split_labels.get(row.split, str(row.split).upper()),
+                    f"{row.proxy_max_true_score:.3f}",
+                    f"{row.oracle_min_true_score:.3f}",
+                    f"{row.dominance_margin:.3f}",
+                ]
+            )
+    _write_custom_table(
+        output_path=output_path,
+        headers=["Environment", "Split", "Best proxy seed", "Worst oracle seed", "Margin"],
+        rows=rows,
+        caption=(
+            "Cross-seed dominance margins on true score. A positive margin means the best proxy seed "
+            "still scores below the worst oracle seed for that environment and split."
+        ),
+        label="tab:seed-dominance",
+        column_spec="l c c c c",
         size_command=r"\small",
         resize_to=r"\columnwidth",
     )

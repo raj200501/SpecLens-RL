@@ -5,7 +5,8 @@
 \caption{Main benchmark outcomes. Across all three environments, proxy-trained
 policies underperform oracle policies on true score. OOD behavior is mixed
 rather than monotone: some shifts reduce exploit frequency while leaving a
-large true-objective gap.}
+large true-objective gap. Bars show means over three seeds; whiskers show seed
+standard deviation.}
 \label{fig:main-results}
 \end{figure*}
 
@@ -22,7 +23,9 @@ oracle reaches $1.000$ with zero hack incidence. Across proxy-trained policies,
 proxy--true correlation is non-positive in every environment. The qualitative
 ordering is also seed-robust: across every environment and both ID/OOD splits,
 the strongest proxy seed still scores below the weakest oracle seed on true
-score.
+score. Appendix Tables~\ref{tab:seed-variability} and
+\ref{tab:seed-dominance} show the corresponding seed variability and positive
+cross-seed dominance margins explicitly.
 
 \input{tables/main_results_compact}
 
@@ -55,15 +58,15 @@ in SensorTamper-v0, and Table~\ref{tab:monitor-scope} shows why. Under
 proxy-only ID rollouts, SensorTamper yields $58/72$ positive hack labels,
 whereas ProxyFarming is $72/72$ positive and GemTimeout is $71/72$ positive;
 failure labels collapse to a single class in all three environments. Only
-SensorTamper therefore supports a nondegenerate grouped hack-monitor task under
-the current protocol. Within that one valid case, a restricted
+SensorTamper therefore satisfies the monitor-admissibility criterion from
+Section~2 under the current protocol. Within that one valid case, a restricted
 logistic-regression monitor reaches ROC-AUC $0.936$ and PR-AUC $0.962$; the
 corresponding rich-channel model reaches $0.964$ and $0.986$. The gain is real
 but small, which is scientifically useful: richer audit information helps, but
 the restricted channel is already behaviorally informative. The negative result
 in ProxyFarming and GemTimeout is structural rather than cosmetic: under the
 accepted leakage-cleared proxy-only setup, those environments do not currently
-define a trustworthy grouped hack-monitor problem.
+define an admissible grouped hack-monitor problem.
 
 \input{tables/monitor_scope}
 
