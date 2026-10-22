@@ -1,0 +1,50 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Specification gaming and reward hacking.}
+Agents that optimize an imperfect reward often find behaviors the designer did
+not intend \citep{amodei2016concrete,krakovna2020specification}.
+\citet{skalse2022rewardhacking} formalize reward hacking as a proxy whose
+optimization decreases the true return. \citet{pan2022effects} show that more
+capable agents exploit misspecified rewards more, sometimes through abrupt phase
+transitions, and \citet{gao2023scaling} measure how a true objective first
+improves and then degrades as a learned reward model is optimized. Our dose-
+response and training-dynamics experiments (Sections~\ref{sec:dynamics} and
+\ref{sec:dose}) ask the same questions in settings small enough that the true
+objective is known exactly and the misspecification can be switched off.
+
+\paragraph{Reward tampering.}
+\citet{everitt2021reward} distinguish an agent influencing the process that
+computes its reward from merely exploiting a flawed reward function.
+\citet{denison2024sycophancy} find that language models trained on a curriculum
+of gameable environments occasionally generalize to editing their own reward
+function. \ST{} is a minimal instance of the first kind: the reward is computed
+from a sensor that the agent can spoof.
+
+\paragraph{Shaping and goal misgeneralization.}
+Shaping rewards preserve optimal policies only if they are potential-based
+\citep{ng1999policy}; \PF{} uses a non-potential bonus precisely so that it
+creates a farmable cycle. \citet{langosco2022goal} show that agents can keep
+their capabilities under distribution shift while pursuing the wrong goal, which
+is the failure our OOD splits are designed to expose.
+
+\paragraph{Monitoring for misbehavior.}
+\citet{pan2022effects} propose detecting aberrant policies as an anomaly-
+detection task. \citet{baker2025monitoring} show that monitors reading a
+reasoning model's chain of thought catch reward hacking in agentic coding, and
+that optimizing against such a monitor can teach the model to hide its intent.
+\citet{macdiarmid2025natural} report that reward hacking learned in production
+RL environments generalizes to broader misalignment, which raises the stakes of
+detecting it early. Our monitors see only trajectories, but the evaluation
+questions are the same: what may the monitor observe, does it generalize to new
+conditions, and is it better than a trivial baseline?
+
+\paragraph{Small testbeds and evaluation methodology.}
+AI Safety Gridworlds \citep{leike2017ai} and bsuite \citep{osband2020bsuite}
+argue for small, diagnostic environments; Procgen \citep{cobbe2020leveraging}
+argues for procedurally generated layouts so that evaluation is not
+memorization. \citet{agarwal2021precipice} show how few-seed RL comparisons
+mislead and recommend interval estimates over runs. We follow all three
+recommendations and add one of our own: every number in the paper is generated
+from saved results and checked in continuous integration
+(Section~\ref{sec:pitfalls}).

@@ -1,0 +1,48 @@
+\section{Evaluation Pitfalls We Found in Our Own Earlier Version}
+\label{sec:pitfalls}
+
+An earlier version of this benchmark, with fixed hand-designed layouts and a
+lighter evaluation pipeline, reported results that did not survive an
+adversarial audit of its own code. We list the failures because each one is
+easy to make in a small RL safety benchmark, and each is now guarded by a test
+in the repository.
+
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+\item \textbf{Repeated episodes counted as independent samples.} Deterministic
+dynamics, greedy actions and two fixed layouts per split meant that each
+``24-episode'' evaluation contained exactly two distinct trajectories, each
+repeated twelve times. Every rate was therefore a multiple of $1/2$ per seed.
+\emph{Now:} layouts are procedurally generated per episode, evaluation uses
+\res{eval-episodes} fresh layouts per split, and a test asserts that evaluation
+layouts are distinct.
+
+\item \textbf{A leakage screen that screened nothing.} Features were flagged as
+suspicious by matching tokens in their names; no feature name matched, so every
+channel passed. \emph{Now:} channels are defined by the provenance of their
+features (Section~\ref{sec:protocol}), a privileged channel serves as a positive
+control that the screen must flag, and a test checks this on synthetic data.
+
+\item \textbf{A causal ablation that ablated the measurement.} Switching off the
+tampering effect also switched off the counter that defined the hack label, so
+hacking ``disappeared'' while the policy kept pressing the console on almost
+every step. \emph{Now:} labels are computed from behavior and do not depend on
+whether the channel pays; a regression test presses the console with the
+channel switched off and requires the episode to be labelled a hack.
+
+\item \textbf{Statistics of constant vectors.} A per-policy proxy--true
+correlation was computed over episodes that were all identical, and floating-
+point noise in the variance turned an undefined value into $\pm1$. \emph{Now:}
+uncertainty is computed only over independent training runs, and the metric was
+dropped.
+
+\item \textbf{Hand-copied numbers.} Some numbers in the earlier manuscript came
+from exploratory runs that the documented pipeline could not regenerate.
+\emph{Now:} every number in this paper is a macro written by
+\texttt{speclens.report} from the committed result files, and continuous
+integration regenerates the macros and tables and fails if they differ from the
+committed versions.
+\end{enumerate}
+
+None of these errors required unusual carelessness; each produced a clean-
+looking table. The common remedy was to write tests that try to break the
+evaluation rather than tests that confirm it runs.

@@ -1,0 +1,68 @@
+\section{Task and Training Details}
+\label{app:details}
+
+\paragraph{Rewards.} Table~\ref{tab:specs} gives the full proxy reward, true
+objective and success definition of each task, generated from the environment
+code. Layouts are sampled by rejection: start, goal and task objects are placed
+uniformly on distinct cells, walls are placed uniformly among the remaining
+cells subject to all objects being mutually reachable, and in \PF{} and \GT{}
+the goal is at least four steps from the start. In \GT{}, gems are sampled only
+from reachable cells $c$ with $d(\text{start},c)+d(c,\text{goal}) >
+\text{deadline}$, where $d$ is the shortest-path distance around walls.
+
+\begin{table}[h]
+\centering
+\caption{Proxy reward, true objective and success definition of every task.}
+\label{tab:specs}
+\small
+\input{generated/table_specs}
+\end{table}
+
+\paragraph{Hyperparameters.} Table~\ref{tab:hparams} lists every training and
+evaluation setting; all values are read from \texttt{configs/paper.yaml}.
+
+\begin{table}[h]
+\centering
+\caption{Training and evaluation settings, identical for every task and method.}
+\label{tab:hparams}
+\small
+\input{generated/table_hyperparameters}
+\end{table}
+
+\paragraph{Pilot runs and what they changed.} Before the main experiment we ran
+single-seed pilots of Oracle and Proxy PPO on every task. They led to three
+changes, all made before any main-experiment run: (i) a multilayer perceptron
+over the flattened grid learned the two-stage \ST{} task too slowly (about 60\%
+success after one million steps), so we switched to the small CNN; (ii) deterministic
+(argmax) evaluation scored far below the same policies' behavior during training
+(for example, 30\% versus 60\% delivery success for the pilot \ST{} oracle), so
+we evaluate the stochastic policy that PPO actually optimizes; and (iii) with a gem bonus of $0.3$, Proxy PPO on \GT{}
+learned the intended behavior and almost never collected gems, while a bonus of
+$0.6$ was exploited, so we use $0.6$ as the default and include both regimes in
+the dose--response sweep ($\lambda=0.5$ corresponds to $0.3$).
+
+\paragraph{Compute.} The \res{n-runs} training runs took \res{cpu-hours}
+CPU-hours in total on a single 4-core machine, one core per run; every figure,
+table and number in this paper is then rebuilt from the saved results in under a
+minute with \texttt{python -m speclens.report}.
+
+\section{Additional Results}
+\label{app:results}
+
+\begin{table}[h]
+\centering
+\caption{Dose--response: final ID hack and success rates of Proxy PPO when the
+corruption channel is scaled by $\lambda$ (\res{sweep-seeds} seeds per value).}
+\label{tab:sweep}
+\small
+\input{generated/table_sweep}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Hack monitors with gradient-boosted trees instead of logistic
+regression (compare Table~\ref{tab:monitors}).}
+\label{tab:monitors-boosting}
+\small
+\resizebox{\linewidth}{!}{\input{generated/table_monitors_boosting}}
+\end{table}

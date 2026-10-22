@@ -1,0 +1,63 @@
+\section{Experimental Protocol}
+\label{sec:protocol}
+
+\paragraph{Agents.} The policy class $\Pi$ is PPO \citep{schulman2017ppo} in a
+single-file CleanRL-style implementation \citep{huang2022cleanrl}: 16
+synchronous environments, rollouts of 128 steps, GAE($\lambda{=}0.95$),
+$\gamma{=}0.99$, four epochs of minibatch size 512, linear learning-rate decay
+from $3\times10^{-4}$ and entropy coefficient $0.01$. The network is two
+$3{\times}3$ convolutions (16 channels) followed by a 256-unit hidden layer.
+\emph{Proxy PPO} is trained on $R_p$; \emph{Oracle PPO} is the same algorithm
+trained on $J_t$ and serves as a diagnostic reference for what the budget can
+achieve, not as a deployable method. Each run uses \res{steps} environment
+steps; the main comparison uses \res{seeds} seeds per task and method.
+Hyperparameters were fixed before the main runs and are identical across tasks
+and methods (Appendix~\ref{app:details}).
+
+\paragraph{Evaluation.} Each final policy is evaluated on \res{eval-episodes}
+fresh layouts per split, with actions sampled from the policy as trained. Every
+policy sees the same layouts, so comparisons are paired. Training runs are the
+independent units: we average episodes within a run and report the mean over
+runs with a 95\% percentile bootstrap interval over runs
+\citep{agarwal2021precipice}. We also report a dominance margin, the true
+return of the worst oracle run minus that of the best proxy run.
+
+\paragraph{Training dynamics and dose--response.} Each run saves 20 evenly
+spaced policy snapshots, which are evaluated on 100 fixed ID layouts to trace
+proxy return, true return and hack rate over training. For the dose--response
+experiment we retrain Proxy PPO with channel scale
+$\lambda\in\{0, 0.25, 0.5, 1, 2\}$ times the default bonus, with
+\res{sweep-seeds} seeds per value. $\lambda{=}0$ removes the channel's reward
+while keeping the dynamics, which is the training-time causal intervention.
+
+\paragraph{Monitors.} A monitor sees one finished trajectory and outputs a
+hack score. Because hacking emerges during training, we build each task's
+monitor dataset from stochastic rollouts of ten snapshots of every Proxy PPO
+run (20 layouts per snapshot and split), giving \res{monitor-episodes} ID
+episodes per task drawn from \res{seeds} independent policy lineages. Monitor
+channels are defined by \emph{provenance}, the trajectory fields a feature is
+computed from:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+\item \textbf{behavior}: positions and actions only (action frequencies,
+idling, revisits, path efficiency); the monitor knows nothing about the task.
+\item \textbf{task}: additionally the goal cell (progress toward the intended
+outcome).
+\item \textbf{privileged}: additionally the cells through which the channel is
+accessed. Hack labels are computed from exactly this information, so this
+channel is leaky by construction and serves as a positive control.
+\end{itemize}
+We train logistic regression and gradient-boosted trees and evaluate them by
+leave-one-run-out cross-validation: every test fold is a training lineage the
+monitor has never seen. We report the mean held-out ROC-AUC, a bootstrap
+interval over runs, the worst run, and two transfer tests: training on ID
+episodes and testing on OOD episodes of the held-out run, and training on the
+first half of training and testing on the second. As a baseline we use the best
+single feature, with its sign chosen on the training folds.
+
+\paragraph{Admissibility.} We call a monitor result \emph{admissible} if (i) the
+label is non-degenerate (minority class at least 5\%) and every held-out run
+contains both classes, so every fold has a defined AUC, and (ii) the channel's
+provenance excludes the label's source fields. A result is additionally flagged
+\emph{trivial} when a single feature already reaches a held-out AUC of 0.98, in
+which case a learned monitor adds little. The privileged channel must fail (ii)
+and be flagged trivial; a test checks that the screen does so.

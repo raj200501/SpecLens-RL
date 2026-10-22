@@ -1,0 +1,26 @@
+\section{Limitations}
+\label{sec:limitations}
+
+\paragraph{Scale and realism.} The tasks are small gridworlds with hand-designed
+channels. They are model organisms: useful because the true objective is known
+exactly and the misspecification can be switched off, not because they resemble
+the settings where reward hacking matters most. Claims transfer to frontier
+systems only as hypotheses to test there.
+
+\paragraph{One algorithm, one architecture.} Every agent is PPO with the same
+small CNN. Whether hacking emerges, and when, depends on the optimizer and on
+exploration; the dose--response thresholds we report are properties of this
+agent, not of the reward functions alone.
+
+\paragraph{Design choices were calibrated.} The network architecture and the
+default channel magnitudes were chosen in single-seed pilot runs so that Oracle
+PPO learns every task within the budget and the default channel is exploited
+(Appendix~\ref{app:details}). The dose--response experiment reports outcomes
+across magnitudes so that this choice is visible rather than hidden.
+
+\paragraph{Hand-crafted monitors.} Our monitors are linear models and shallow
+trees over twenty hand-written trajectory features. Stronger monitors could do
+better, and monitors with access to an agent's internals or reasoning are out of
+scope. The monitor datasets pool snapshots of a single training run per
+lineage; monitoring a different policy family, or a policy optimized against
+the monitor \citep{baker2025monitoring}, may behave differently.
