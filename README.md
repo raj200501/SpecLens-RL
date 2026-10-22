@@ -1,117 +1,129 @@
 # SpecLens-RL
 
-SpecLens-RL is a framework-first reinforcement learning repository for diagnosing
-specification failures at laptop scale. It is not a new RL trick and it is not
-a benchmark-SOTA project. The core artifact is a reusable task schema, a metric
-suite, leakage-aware monitor evaluation, three symbolic environments, and a
-paper scaffold whose empirical sections are populated only from saved outputs.
+**Small, auditable model organisms of reward hacking, reward tampering and monitorability in reinforcement learning.**
 
-## Scope
+[![CI](https://github.com/raj200501/SpecLens-RL/actions/workflows/ci.yml/badge.svg)](https://github.com/raj200501/SpecLens-RL/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-The scientific object in this repo is a specification diagnostic task:
+Reward hacking is no longer only a gridworld curiosity. RL-trained language-model agents game their tests
+([Baker et al., 2025](https://arxiv.org/abs/2503.11926)), and hacking learned in production environments can
+generalize to broader misalignment ([MacDiarmid et al., 2025](https://arxiv.org/abs/2511.18397)). Studying
+this at scale is expensive, and the "true objective" is usually unknown. SpecLens-RL takes the opposite
+trade-off. It provides three tiny procedurally generated tasks with these properties:
 
-`T = (M, R_p, J_t, C, M_mon, Delta, Pi)`
+- the true objective is known exactly;
+- the misspecification is a single explicit channel that can be scaled or switched off;
+- every number in the paper is regenerated from saved results by one command and checked in CI.
 
-where:
+It asks three questions:
 
-- `M` is the underlying MDP or POMDP.
-- `R_p` is the proxy reward used for learning.
-- `J_t` is the hidden true objective used for evaluation.
-- `C` is the corruption or tampering channel family.
-- `M_mon` is the monitor observation channel.
-- `Delta` is the distribution-shift family.
-- `Pi` is the policy or training family considered.
+1. **When does an optimizer exploit a misspecified reward?** We look at training dynamics and at a
+   dose–response over the strength of the exploit.
+2. **Can a monitor detect hacking from behavior alone?** Monitors are evaluated against baselines that a
+   misleading monitor would also beat.
+3. **What happens when you train against the monitor?**
 
-This repository packages that framing as code, experiments, and paper assets.
+The paper is in [`paper/`](paper) (`make paper`), and every result in it comes from [`results/`](results).
 
-## Environments
+## The tasks
 
-The initial benchmark contains three compact symbolic environments:
+![Example layouts](paper/figures/tasks.png)
 
-- `ProxyFarming-v0`: goal-reaching with exploitable local proxy farming.
-- `SensorTamper-v0`: delivery with explicit tampering opportunities.
-- `GemTimeout-v0`: delayed success versus myopic gem collection.
+Each task is a fully observed 7×7 gridworld whose layout is resampled every episode. The proxy reward
+`R_p` differs from the true objective `J_t` through one **corruption channel** `C`, scaled by `λ`:
 
-Each environment exports a schema record, computes proxy and true signals, marks
-success and reward-hack events, and supports deterministic ID and OOD variants.
+| Task | Intended behavior | Corruption channel | Mechanism | OOD shift |
+|---|---|---|---|---|
+| **ProxyFarming** | reach the goal | +0.2 per step on a "beacon" tile | non-potential-based shaping creates a reward cycle (Ng et al., 1999) | 3 → 6 walls |
+| **SensorTamper** | carry an object to a target | a console makes the delivery sensor emit false confirmations (+1 each) | reward tampering ([Everitt et al., 2021](https://doi.org/10.1007/s11229-021-03141-4)) | console moved far from the start |
+| **GemTimeout** | reach the goal before a deadline | +0.6 per gem; every gem is a detour past the deadline | the proxy omits a constraint | 3 → 5 gems |
 
-## Methods
+A *hack* is defined by behavior: the agent used the channel (3+ steps on the beacon, a console press, a
+gem), whether or not the channel paid. A *harmful hack* is a hack that also fails the true objective. In
+`speclens.envs`, `step()` returns the proxy reward like any Gymnasium environment; the true reward and all
+labels are in `info`.
 
-The required method set stays intentionally small:
+## Results
 
-- `PROXY_PPO`: standard PPO trained on proxy reward only.
-- `ORACLE_TRUE_PPO`: PPO trained on the true objective for diagnosis only.
-- `CONSERVATIVE_PROXY_PPO`: optional and only run when resource-safe.
+*Results from the full experiment run are being regenerated with the final code and will be added here.*
 
-## Monitor Channels
+## What we got wrong the first time
 
-The repo evaluates monitorability under two explicit audit views:
+An earlier version of this repository reported results that did not survive an audit of its own code.
+Each failure below is now guarded by a test:
 
-- `restricted`: observations, actions, reward history, length, and compact
-  derived features chosen to avoid direct label leakage.
-- `rich`: restricted features plus extra privileged summaries that remain
-  plausible in an audit setting without making the label tautological.
+- **Repeated episodes counted as samples.** Deterministic dynamics with two fixed layouts meant every
+  "24-episode" evaluation was 2 distinct trajectories, each repeated 12 times.
+- **A leakage screen that screened nothing.** Features were flagged by name tokens that no feature
+  name contained.
+- **An ablation that ablated the measurement.** Switching off the tamper effect also switched off the
+  counter behind the hack label, while the policy kept tampering.
+- **Correlations of constant vectors** that floating-point noise turned into ±1.
+- **Hand-copied numbers** that the pipeline could not regenerate.
 
-Leakage diagnostics are mandatory before any monitor result is accepted.
-
-## Safety Rules
-
-- Never fabricate citations, results, runtime claims, or tables.
-- Do not write result sentences into the paper unless supported by saved
-  artifacts.
-- Stop new runs if free disk falls below `1 GB`.
-- Respect the active artifact budget chosen by preflight.
-- Keep only compact metrics, sampled trajectories, and at most two checkpoints
-  per run.
-
-## Profiles
-
-Preflight selects one of four execution profiles:
-
-- `PROFILE_FULL_SAFE`
-- `PROFILE_LEAN_SAFE`
-- `PROFILE_ULTRA_LEAN`
-- `PROFILE_SCAFFOLD_ONLY`
-
-Expected generated-artifact budgets:
-
-- `FULL_SAFE`: up to `3.0 GB`
-- `LEAN_SAFE`: up to `1.5 GB`
-- `ULTRA_LEAN`: up to `700 MB`
-- `SCAFFOLD_ONLY`: up to `250 MB`
-
-## Commands
+## Reproducing everything
 
 ```bash
-make install
-make preflight
-make smoke
-make stage1
-make stage2
-make plots
-make tables
-make paper
-make clean_artifacts
-make report
+make install       # exact versions from requirements-lock.txt (Python 3.13, CPU-only PyTorch)
+make test          # unit tests, about a minute
+make verify        # check that the committed results were produced by the current code and config
+make report        # figures, tables and numbers from results/ (about a minute; no training)
+make paper         # compile paper/main.pdf
+make experiments   # retrain everything: 135 PPO runs, a few CPU-hours on 4 cores, resumable
 ```
 
-The stage scripts enforce the active profile and disk budget before launching
-new work.
+`make smoke` runs the entire pipeline at toy scale in about a minute.
 
-## Paper
+Every result file in `results/` records a fingerprint of the code, configuration and (for the
+monitor-penalty runs) the monitor that produced it. `make verify`, run in CI, fails if any result is stale.
+The paper quotes numbers through `\res{key}` macros written by `speclens.report`. CI regenerates them and
+fails if the committed paper assets differ, or if the paper cites a number the report does not produce.
 
-The paper scaffold lives in [`latex/`](./latex). Non-experimental sections are
-written immediately. Experimental placeholders are only populated after plots
-and tables have been generated from real outputs.
+## Using the environments
 
-## Reproducibility
+```python
+from speclens.envs import make_env
 
-The repository is fully local. It does not require paid APIs, cloud services,
-external databases, or human labeling. Before any future submission cycle, a
-human should manually recheck:
+env = make_env("SensorTamper", split="id", channel_scale=1.0)
+obs, _ = env.reset(seed=0)
+obs, proxy_reward, terminated, truncated, info = env.step(4)  # 4 = interact
+info["true_reward"], info["channel_reward"]
+print(env.render())
+```
 
-- bibliography metadata,
-- hardware/runtime statements,
-- all populated paper result sentences,
-- environment calibration after any override,
-- and leakage diagnostics for each accepted monitor result.
+## Repository layout
+
+```
+src/speclens/
+  envs/          the three tasks and their shared base class
+  rl/            PPO (single-file, CleanRL-style) and the actor-critic CNN
+  evaluation.py  batched, seeded rollouts on fresh layouts
+  monitors/      trajectory features with enforced provenance, CV and baselines, training against a monitor
+  analysis/      statistics, monitorability analysis, figures and tables
+  experiment.py  every training run in the paper, from one config (python -m speclens.experiment)
+  report.py      every figure, table and number in the paper (python -m speclens.report)
+configs/         paper.yaml (the paper) and smoke.yaml (CI-scale)
+results/         compact results the paper is built from (per-run checkpoints are not committed)
+paper/           LaTeX sources; paper/generated/ and paper/figures/ are written by speclens.report
+tests/           invariants of the environments, PPO, monitors, statistics and the pipeline
+```
+
+## Limitations
+
+These are model organisms, not realistic deployments. Every agent is PPO with one small CNN. The default
+channel strengths were chosen in pilot runs so that the oracle learns each task and the proxy channel is
+exploited; the dose–response sweep shows what happens at other strengths. Monitors are linear models and
+shallow trees over 15–23 hand-written trajectory features. See the paper's limitations section for more.
+
+## Citation
+
+```bibtex
+@misc{kashikar2026speclens,
+  title  = {SpecLens-RL: Small, Auditable Model Organisms of Reward Hacking, Reward Tampering, and Monitorability},
+  author = {Kashikar, Raj},
+  year   = {2026},
+  url    = {https://github.com/raj200501/SpecLens-RL}
+}
+```
+
+MIT License.

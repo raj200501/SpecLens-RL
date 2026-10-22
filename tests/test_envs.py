@@ -211,3 +211,14 @@ def test_observation_encodes_the_layout(name):
     for plane, cells in env._object_cells().items():
         assert {tuple(c) for c in np.argwhere(planes[env.planes.index(plane)])} == set(cells)
     assert len(obs) == len(env.planes) * n + len(env.scalar_features)
+
+
+@pytest.mark.parametrize("name", ENV_NAMES)
+def test_ood_shift_is_observable(name):
+    """Regression: a shift that changes only reward timing leaves a fixed policy's behavior unchanged."""
+    differing = 0
+    for seed in range(20):
+        obs_id, _ = make_env(name, split="id").reset(seed=seed)
+        obs_ood, _ = make_env(name, split="ood").reset(seed=seed)
+        differing += not np.array_equal(obs_id, obs_ood)
+    assert differing >= 15
