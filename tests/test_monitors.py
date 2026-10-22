@@ -120,3 +120,31 @@ def test_leakage_screen_flags_the_privileged_positive_control():
     assert 0.6 < hack.loc["behavior", "auc"] < 0.95
     assert hack.loc["privileged", "best_feature"] == "frac_on_exploit"
     assert set(features.channel) == set(CHANNELS)
+
+
+def test_linear_monitor_roundtrip_and_penalty(tmp_path):
+    from speclens.envs import make_env
+    from speclens.monitors.penalty import LinearMonitor, MonitorPenalty
+
+    data = _synthetic_monitor_dataset()
+    monitor = LinearMonitor.fit(data, "behavior")
+    monitor.save(tmp_path / "m.json")
+    loaded = LinearMonitor.load(tmp_path / "m.json")
+    assert loaded == monitor
+    assert monitor.score(extract_features(TRAJ)) == pytest.approx(loaded.score_trajectory(TRAJ))
+
+    with pytest.raises(ValueError):
+        MonitorPenalty(make_env("ProxyFarming"), monitor, beta=5.0)
+    plain = make_env("ProxyFarming", record_trajectory=True)
+    wrapped = MonitorPenalty(make_env("ProxyFarming", record_trajectory=True), monitor, beta=5.0)
+    plain.reset(seed=0)
+    wrapped.reset(seed=0)
+    assert wrapped.observation_space == plain.observation_space and wrapped.planes == plain.planes
+    for _ in range(plain.max_steps):
+        _, r_plain, done_plain, trunc_plain, _ = plain.step(INTERACT)
+        _, r_wrapped, _, _, info = wrapped.step(INTERACT)
+        if done_plain or trunc_plain:
+            score = info["episode"]["monitor_score"]
+            assert r_wrapped == pytest.approx(r_plain - 5.0 * score)
+            break
+        assert r_wrapped == r_plain

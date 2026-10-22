@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use SpecLens-RL, please cite it as below."
+title: "SpecLens-RL: Small, Auditable Model Organisms of Reward Hacking, Reward Tampering, and Monitorability"
+authors:
+  - family-names: Kashikar
+    given-names: Raj
+version: 1.0.0
+date-released: 2026-10-22
+license: MIT
+repository-code: "https://github.com/raj200501/SpecLens-RL"
+keywords:
+  - reinforcement learning
+  - reward hacking
+  - reward tampering
+  - specification gaming
+  - monitoring
+  - AI safety

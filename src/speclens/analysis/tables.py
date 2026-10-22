@@ -41,6 +41,58 @@ def task_table(path: Path) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def spec_table(path: Path) -> None:
+    """Full proxy reward, true objective and success definition of every task."""
+    lines = [
+        "\\begin{tabular}{@{}p{0.13\\linewidth}p{0.3\\linewidth}p{0.27\\linewidth}p{0.22\\linewidth}@{}}",
+        "\\toprule",
+        "Task & Proxy reward $R_p$ & True objective $J_t$ & Success \\\\",
+        "\\midrule",
+    ]
+    for name in ENV_ORDER:
+        spec = ENVS[name].spec_tuple
+        cells = [_escape(x) for x in (spec.proxy_reward, spec.true_objective, spec.success)]
+        lines.append(f"{name} & " + " & ".join(cells) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}"]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def hyperparameter_table(cfg: dict, path: Path) -> None:
+    rows = [(key.replace("_", " "), value) for key, value in cfg["ppo"].items()]
+    rows += [
+        ("seeds (main / sweep)", f"{cfg['main']['seeds']} / {cfg['sweep']['seeds']}"),
+        ("policy snapshots per run", cfg["main"]["checkpoints"]),
+        ("evaluation layouts per split", cfg["evaluation"]["episodes"]),
+        ("channel scales (sweep)", ", ".join(f"{s:g}" for s in cfg["sweep"]["channel_scales"])),
+        ("monitor episodes per snapshot and split", cfg["monitor"]["episodes_per_checkpoint"]),
+    ]
+    lines = ["\\begin{tabular}{@{}ll@{}}", "\\toprule", "Setting & Value \\\\", "\\midrule"]
+    lines += [
+        f"{name} & {value:,} \\\\" if isinstance(value, int) else f"{name} & {value} \\\\" for name, value in rows
+    ]
+    lines += ["\\bottomrule", "\\end{tabular}"]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def sweep_table(summary: pd.DataFrame, path: Path) -> None:
+    """Dose-response: ID hack and success rates per channel scale."""
+    data = summary[summary.split == "id"]
+    scales = sorted(data.channel_scale.unique())
+    header = " & ".join(f"$\\lambda={s:g}$" for s in scales)
+    lines = [
+        f"\\begin{{tabular}}{{@{{}}ll{'c' * len(scales)}@{{}}}}",
+        "\\toprule",
+        f"Task & Metric & {header} \\\\",
+        "\\midrule",
+    ]
+    for env in envs_in(data):
+        for metric, label in (("hack", "hack rate"), ("success", "success")):
+            cells = [fmt(data[(data.env == env) & (data.channel_scale == s)].iloc[0][metric]) for s in scales]
+            lines.append(f"{env if metric == 'hack' else ''} & {label} & " + " & ".join(cells) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}"]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def main_results_table(summary: pd.DataFrame, path: Path) -> None:
     """Final-policy outcomes; ``summary`` comes from ``stats.summarize``."""
     lines = [
@@ -106,4 +158,20 @@ def write_numbers(entries: Iterable[tuple[str, str]], path: Path) -> None:
     ]
     for key, value in entries:
         lines.append(f"\\expandafter\\def\\csname res@{key}\\endcsname{{{value}}}")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def penalty_table(summary: pd.DataFrame, path: Path) -> None:
+    """Outcomes of Proxy PPO trained against the behavior monitor."""
+    lines = [
+        "\\begin{tabular}{@{}lccccc@{}}",
+        "\\toprule",
+        "Task & Hack rate & Flagged & Undetected hacks & Recall before & Recall after \\\\",
+        "\\midrule",
+    ]
+    for env in envs_in(summary):
+        row = summary[summary.env == env].iloc[0]
+        cells = [fmt_ci(row, m) for m in ("hack", "flagged", "undetected_hack", "recall_before", "recall_after")]
+        lines.append(f"{env} & " + " & ".join(cells) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}"]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

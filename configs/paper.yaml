@@ -35,3 +35,9 @@ monitor:
   checkpoint_stride: 2       # use every 2nd snapshot of each proxy run
   episodes_per_checkpoint: 20
   models: [logistic, boosting]
+
+monitor_penalty:             # Proxy PPO trained against a fitted hack monitor (runs after the main stage)
+  channel: behavior          # the monitor sees positions and actions only
+  beta: 10.0                 # penalty = beta * P(hack | trajectory), applied at the end of each episode
+  seeds: 5
+  seed_offset: 100           # seeds disjoint from the main runs the monitor was fitted on

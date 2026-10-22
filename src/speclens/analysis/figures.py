@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from matplotlib.patches import Rectangle
 
@@ -224,5 +223,39 @@ def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -
     save(fig, path)
 
 
-def jitter(values: np.ndarray, scale: float = 0.02, seed: int = 0) -> np.ndarray:
-    return values + np.random.default_rng(seed).normal(0, scale, size=len(values))
+def penalty_figure(penalty_curves: pd.DataFrame, curves: pd.DataFrame, path: Path) -> None:
+    """Hack rate and monitor-flag rate over training for agents penalized by the monitor."""
+    apply_style()
+    pen = summarize(penalty_curves, ["env", "env_steps"], ["hack", "flagged"])
+    base = summarize(curves[(curves.method == "proxy") & (curves.channel_scale == 1.0)], ["env", "env_steps"], ["hack"])
+    envs = envs_in(pen)
+    fig, axes = plt.subplots(1, len(envs), figsize=(7.0, 2.4), sharey=True, squeeze=False)
+    series = [
+        ("hack", "Hack rate (ground truth)", METHOD_COLORS["proxy"], "-"),
+        ("flagged", "Flagged by the monitor", METHOD_COLORS["oracle"], "-"),
+    ]
+    for col, env in enumerate(envs):
+        ax = axes[0, col]
+        ref = base[base.env == env].sort_values("env_steps")
+        ax.plot(
+            ref.env_steps / 1e6,
+            ref.hack,
+            color=INK_SECONDARY,
+            linewidth=1.0,
+            linestyle=(0, (4, 3)),
+            label="Hack rate without monitor penalty",
+        )
+        part = pen[pen.env == env].sort_values("env_steps")
+        for metric, label, color, style in series:
+            x = part.env_steps / 1e6
+            ax.plot(x, part[metric], color=color, linestyle=style, label=label)
+            ax.fill_between(x, part[f"{metric}_lo"], part[f"{metric}_hi"], color=color, alpha=0.15, linewidth=0)
+        ax.set_title(env, color=INK)
+        ax.set_ylim(-0.03, 1.03)
+        ax.set_xlabel("Environment steps (millions)")
+        if col == 0:
+            ax.set_ylabel("Fraction of episodes")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.08))
+    fig.tight_layout()
+    save(fig, path)

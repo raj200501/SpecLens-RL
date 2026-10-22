@@ -16,6 +16,7 @@ import pandas as pd
 
 from speclens.analysis import figures, tables
 from speclens.analysis.monitoring import analyze
+from speclens.analysis.penalty import summarize_penalty
 from speclens.analysis.stats import summarize
 from speclens.experiment import load_config
 
@@ -72,8 +73,20 @@ def build(cfg: dict, results: Path, paper: Path) -> dict:
     tables.task_table(gen_dir / "table_tasks.tex")
     tables.main_results_table(main_summary, gen_dir / "table_main.tex")
     tables.monitor_table(monitor_results, gen_dir / "table_monitors.tex")
+    tables.monitor_table(monitor_results, gen_dir / "table_monitors_boosting.tex", model="boosting")
+    tables.spec_table(gen_dir / "table_specs.tex")
+    tables.hyperparameter_table(cfg, gen_dir / "table_hyperparameters.tex")
+    tables.sweep_table(sweep_summary, gen_dir / "table_sweep.tex")
 
     numbers = list(_numbers(cfg, main_summary, dom, sweep_summary, monitor_results, runs, monitor_data))
+    if (results / "penalty_episodes.csv.gz").exists():
+        penalty = summarize_penalty(
+            pd.read_csv(results / "penalty_episodes.csv.gz"), monitor_data, cfg["monitor_penalty"]["channel"]
+        )
+        penalty.to_csv(results / "summary_penalty.csv", index=False, float_format="%.4f")
+        figures.penalty_figure(pd.read_csv(results / "penalty_curves.csv"), curves, fig_dir / "monitor_penalty")
+        tables.penalty_table(penalty, gen_dir / "table_penalty.tex")
+        numbers += list(_penalty_numbers(cfg, penalty, pd.read_csv(results / "penalty_runs.csv")))
     tables.write_numbers(numbers, gen_dir / "numbers.tex")
     (results / "numbers.json").write_text(json.dumps(dict(numbers), indent=2), encoding="utf-8")
     return dict(numbers)
@@ -112,6 +125,16 @@ def _numbers(cfg, main_summary, dom, sweep_summary, monitor_results, runs, monit
         yield f"{key}-single", f"{r.best_feature_auc:.2f}"
     for _, r in monitor_results.drop_duplicates(["env", "target"]).iterrows():
         yield f"mon-{r.env}-{r.target}-rate", pct(r.positive_rate)
+
+
+def _penalty_numbers(cfg, penalty, runs):
+    pct = lambda v: "--" if pd.isna(v) else f"{100 * v:.0f}"  # noqa: E731
+    yield "pen-seeds", str(cfg["monitor_penalty"]["seeds"])
+    yield "pen-beta", f"{cfg['monitor_penalty']['beta']:g}"
+    yield "pen-cpu-hours", f"{runs.wall_clock_sec.sum() / 3600:.1f}"
+    for _, r in penalty.iterrows():
+        for m in ("hack", "flagged", "undetected_hack", "success", "recall_before", "recall_after"):
+            yield f"pen-{r.env}-{m.replace('_', '-')}", pct(r[m])
 
 
 def main() -> None:
