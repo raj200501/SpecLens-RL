@@ -1,3 +1,0 @@
-env,method,seeds,step_budget,wall_clock,disk_footprint
-GemTimeout-v0,ORACLE_TRUE_PPO,3,60000,50.91926288604736,1511268
-GemTimeout-v0,PROXY_PPO,3,60000,41.629610776901245,1511296

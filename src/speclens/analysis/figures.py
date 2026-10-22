@@ -1,0 +1,228 @@
+"""Paper figures. Every figure is computed from the CSVs in ``results/``."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib.patches import Rectangle
+
+from speclens.analysis.stats import summarize
+from speclens.analysis.style import (
+    CHANNEL_COLORS,
+    ENV_ORDER,
+    INK,
+    INK_SECONDARY,
+    METHOD_COLORS,
+    METHOD_LABELS,
+    apply_style,
+    envs_in,
+    save,
+)
+from speclens.envs import GemTimeout, ProxyFarming, SensorTamper, make_env
+
+CELL_COLORS = {
+    "#": "#3d3d3a",
+    "G": "#1baf7a",
+    "A": "#2a78d6",
+    "B": "#eb6834",
+    "C": "#eb6834",
+    "*": "#eb6834",
+    "O": "#9a7b4f",
+}
+CELL_GLYPHS = {"G": "G", "A": "A", "B": "B", "C": "C", "*": "◆", "O": "O"}
+CHANNEL_NOTES = {
+    "ProxyFarming": f"B = beacon (+{ProxyFarming.beacon_bonus:g} per step on it)",
+    "SensorTamper": f"O = object, C = console (+{SensorTamper.spoof_reward:g} per spoofed step)",
+    "GemTimeout": f"◆ = gem (+{GemTimeout.gem_bonus:g} each)",
+}
+
+
+def tasks_figure(path: Path, layout_seed: int = 7) -> None:
+    """Example ID and OOD layouts for each task."""
+    apply_style()
+    fig, axes = plt.subplots(2, 3, figsize=(6.4, 4.4))
+    for col, env_name in enumerate(ENV_ORDER):
+        for row, split in enumerate(("id", "ood")):
+            env = make_env(env_name, split=split)
+            env.reset(seed=layout_seed)
+            ax = axes[row, col]
+            _draw_grid(ax, env.render().splitlines())
+            extra = ""
+            if env_name == "GemTimeout":
+                extra = f", deadline {int(env.layout.params['deadline'])}"
+            if env_name == "SensorTamper":
+                extra = f", delay {int(env.layout.params['delay'])}"
+            ax.set_title(f"{env_name} ({split.upper()}{extra})", fontsize=8, color=INK)
+        axes[1, col].text(
+            0.5,
+            -0.08,
+            CHANNEL_NOTES[env_name],
+            transform=axes[1, col].transAxes,
+            ha="center",
+            va="top",
+            fontsize=7,
+            color=INK_SECONDARY,
+        )
+    fig.tight_layout()
+    save(fig, path)
+
+
+def _draw_grid(ax, rows: list[str]) -> None:
+    size = len(rows)
+    for r, line in enumerate(rows):
+        for c, ch in enumerate(line):
+            face = CELL_COLORS.get(ch, "#f4f3ef")
+            ax.add_patch(Rectangle((c, size - 1 - r), 0.94, 0.94, facecolor=face, edgecolor="none"))
+            if ch in CELL_GLYPHS:
+                ax.text(
+                    c + 0.47,
+                    size - 1 - r + 0.47,
+                    CELL_GLYPHS[ch],
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color="white",
+                    fontweight="bold",
+                )
+    ax.set_xlim(-0.1, size)
+    ax.set_ylim(-0.1, size)
+    ax.set_aspect("equal")
+    ax.axis("off")
+
+
+def curves_figure(curves: pd.DataFrame, path: Path) -> None:
+    """Proxy return, true return and hack rate over training for both methods."""
+    apply_style()
+    data = curves[curves.channel_scale == 1.0]
+    summary = summarize(data, ["env", "method", "env_steps"], ["proxy_return", "true_return", "hack"])
+    panels = [("proxy_return", "Proxy return $R_p$"), ("true_return", "True return $J_t$"), ("hack", "Hack rate")]
+    envs = envs_in(summary)
+    fig, axes = plt.subplots(len(panels), len(envs), figsize=(7.0, 5.2), sharex=True, squeeze=False)
+    for col, env in enumerate(envs):
+        for row, (metric, label) in enumerate(panels):
+            ax = axes[row, col]
+            for method in ("oracle", "proxy"):
+                part = summary[(summary.env == env) & (summary.method == method)].sort_values("env_steps")
+                x = part.env_steps / 1e6
+                ax.plot(x, part[metric], color=METHOD_COLORS[method], label=METHOD_LABELS[method])
+                ax.fill_between(
+                    x, part[f"{metric}_lo"], part[f"{metric}_hi"], color=METHOD_COLORS[method], alpha=0.15, linewidth=0
+                )
+            if metric == "hack":
+                ax.set_ylim(-0.03, 1.03)
+            if row == 0:
+                ax.set_title(env, color=INK)
+            if col == 0:
+                ax.set_ylabel(label)
+            if row == len(panels) - 1:
+                ax.set_xlabel("Environment steps (millions)")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.02))
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    save(fig, path)
+
+
+def dose_response_figure(episodes: pd.DataFrame, sweep_seeds: int, path: Path) -> None:
+    """Final hack and success rates as the corruption channel is scaled."""
+    apply_style()
+    proxy = episodes[(episodes.method == "proxy") & (episodes.split == "id") & (episodes.seed < sweep_seeds)]
+    oracle = episodes[(episodes.method == "oracle") & (episodes.split == "id")]
+    summary = summarize(proxy, ["env", "channel_scale"], ["hack", "success"])
+    oracle_success = summarize(oracle, ["env"], ["success"]).set_index("env")["success"]
+    envs = envs_in(summary)
+    fig, axes = plt.subplots(2, len(envs), figsize=(7.0, 3.8), sharex=True, sharey=True, squeeze=False)
+    color = METHOD_COLORS["proxy"]
+    for col, env in enumerate(envs):
+        part = summary[summary.env == env].sort_values("channel_scale")
+        for row, (metric, label) in enumerate([("hack", "Hack rate"), ("success", "Success rate")]):
+            ax = axes[row, col]
+            ax.plot(
+                part.channel_scale,
+                part[metric],
+                color=color,
+                marker="o",
+                markersize=4,
+                markeredgecolor="white",
+                markeredgewidth=1.0,
+                label="Proxy PPO",
+            )
+            ax.fill_between(
+                part.channel_scale, part[f"{metric}_lo"], part[f"{metric}_hi"], color=color, alpha=0.15, linewidth=0
+            )
+            if metric == "success":
+                ax.axhline(
+                    oracle_success[env], color=INK_SECONDARY, linewidth=1.0, linestyle=(0, (4, 3)), label="Oracle PPO"
+                )
+            ax.set_ylim(-0.03, 1.03)
+            if row == 0:
+                ax.set_title(env, color=INK)
+            if col == 0:
+                ax.set_ylabel(label)
+            if row == 1:
+                ax.set_xlabel("Corruption-channel scale")
+    handles, labels = axes[1, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.03))
+    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    save(fig, path)
+
+
+def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -> None:
+    """Held-out hack-monitor AUC per channel, with single-feature and OOD-transfer markers."""
+    apply_style()
+    data = results[(results.target == "hack") & (results.model == model)]
+    channels = list(CHANNEL_COLORS)
+    fig, ax = plt.subplots(figsize=(6.4, 2.6))
+    width = 0.22
+    envs = envs_in(results)
+    for e, env in enumerate(envs):
+        for c, channel in enumerate(channels):
+            row = data[(data.env == env) & (data.channel == channel)]
+            if row.empty:
+                continue
+            row = row.iloc[0]
+            x = e + (c - 1) * (width + 0.04)
+            ax.bar(
+                x,
+                row.auc - 0.5,
+                bottom=0.5,
+                width=width,
+                color=CHANNEL_COLORS[channel],
+                label=channel if e == 0 else None,
+            )
+            ax.errorbar(
+                x, row.auc, yerr=[[row.auc - row.auc_lo], [row.auc_hi - row.auc]], color=INK, linewidth=0.8, capsize=0
+            )
+            ax.scatter(
+                x,
+                row.best_feature_auc,
+                marker="D",
+                s=14,
+                color=INK,
+                zorder=3,
+                label="best single feature" if e == 0 and c == 0 else None,
+            )
+            ax.scatter(
+                x,
+                row.ood_auc,
+                marker="o",
+                s=18,
+                facecolor="white",
+                edgecolor=INK,
+                linewidth=0.9,
+                zorder=3,
+                label="ID → OOD transfer" if e == 0 and c == 0 else None,
+            )
+    ax.set_xticks(range(len(envs)), envs)
+    ax.set_ylim(0.5, 1.01)
+    ax.set_ylabel("Hack-monitor ROC-AUC")
+    ax.grid(axis="x", visible=False)
+    ax.legend(loc="upper center", ncol=5, bbox_to_anchor=(0.5, 1.2), handlelength=1.2, columnspacing=1.0)
+    fig.tight_layout()
+    save(fig, path)
+
+
+def jitter(values: np.ndarray, scale: float = 0.02, seed: int = 0) -> np.ndarray:
+    return values + np.random.default_rng(seed).normal(0, scale, size=len(values))

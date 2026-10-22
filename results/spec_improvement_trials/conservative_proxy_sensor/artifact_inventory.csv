@@ -1,8 +1,0 @@
-path,size_bytes,category,created_at,notes
-results/spec_improvement_trials/conservative_proxy_sensor/runs/SensorTamper-v0/CONSERVATIVE_PROXY_PPO/seed_0/train_metrics.csv.gz,339,train_metrics,2026-04-10T20:48:59.284611+00:00,
-results/spec_improvement_trials/conservative_proxy_sensor/runs/SensorTamper-v0/CONSERVATIVE_PROXY_PPO/seed_0/latest.ckpt,252159,checkpoint,2026-04-10T20:48:59.286223+00:00,
-results/spec_improvement_trials/conservative_proxy_sensor/runs/SensorTamper-v0/CONSERVATIVE_PROXY_PPO/seed_0/best.ckpt,252131,checkpoint,2026-04-10T20:48:59.286301+00:00,
-results/spec_improvement_trials/conservative_proxy_sensor/runs/SensorTamper-v0/CONSERVATIVE_PROXY_PPO/seed_0/summary.json,697,summary,2026-04-10T20:48:59.286366+00:00,
-results/spec_improvement_trials/conservative_proxy_sensor/runs/SensorTamper-v0/CONSERVATIVE_PROXY_PPO/seed_0/episodes.csv.gz,489,episode_metrics,2026-04-10T20:49:43.818000+00:00,
-results/spec_improvement_trials/conservative_proxy_sensor/runs/SensorTamper-v0/CONSERVATIVE_PROXY_PPO/seed_0/trajectories.json,2,trajectories,2026-04-10T20:49:43.818698+00:00,
-results/spec_improvement_trials/conservative_proxy_sensor/runs/SensorTamper-v0/CONSERVATIVE_PROXY_PPO/seed_0/eval_summary.json,438,summary,2026-04-10T20:49:43.818782+00:00,

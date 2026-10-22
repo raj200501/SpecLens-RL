@@ -1,3 +1,0 @@
-name: restricted
-include_privileged: false
-include_suspicious_features: false

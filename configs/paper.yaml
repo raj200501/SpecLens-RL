@@ -1,0 +1,37 @@
+# Configuration for every result in the paper.
+# Reproduce with:  python -m speclens.experiment --config configs/paper.yaml --workers 4
+envs: [ProxyFarming, SensorTamper, GemTimeout]
+
+main:
+  methods: [proxy, oracle]   # proxy: trained on R_p; oracle: trained on J_t (diagnostic only)
+  seeds: 10
+  checkpoints: 20            # evenly spaced policy snapshots per run (for training curves and monitors)
+
+ppo:
+  total_steps: 1500000
+  n_envs: 16
+  rollout_steps: 128
+  epochs: 4
+  minibatch_size: 512
+  learning_rate: 0.0003
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_eps: 0.2
+  value_coef: 0.5
+  entropy_coef: 0.01
+  max_grad_norm: 0.5
+  hidden: 256
+  channels: 16
+
+evaluation:
+  episodes: 500              # fresh layouts per split for each final policy (sampled actions)
+  curve_episodes: 100        # fresh ID layouts per checkpoint
+
+sweep:                       # dose-response: proxy agents trained with a scaled corruption channel
+  channel_scales: [0.0, 0.25, 0.5, 1.0, 2.0]
+  seeds: 5
+
+monitor:
+  checkpoint_stride: 2       # use every 2nd snapshot of each proxy run
+  episodes_per_checkpoint: 20
+  models: [logistic, boosting]

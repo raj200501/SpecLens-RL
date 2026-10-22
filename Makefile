@@ -1,33 +1,29 @@
-PYTHON ?= ./.venv/bin/python
+PYTHON ?= python
+WORKERS ?= 4
 
-.PHONY: install preflight smoke stage1 stage2 plots tables paper clean_artifacts report
+.PHONY: install test lint smoke experiments report paper all
 
-install:
-	$(PYTHON) scripts/install_check.py --write-requirements-report
+install:  ## install the package with development extras
+	$(PYTHON) -m pip install -e ".[dev]"
 
-preflight:
-	$(PYTHON) scripts/preflight.py
+test:  ## unit tests (about a minute on a laptop)
+	$(PYTHON) -m pytest
 
-smoke:
-	$(PYTHON) scripts/run_stage0.py
+lint:
+	$(PYTHON) -m ruff check src tests
+	$(PYTHON) -m ruff format --check src tests
 
-stage1:
-	$(PYTHON) scripts/run_stage1.py
+smoke:  ## the full pipeline at toy scale, into a scratch directory
+	$(PYTHON) -m speclens.experiment --config configs/smoke.yaml --out /tmp/speclens-smoke/results --workers $(WORKERS)
+	$(PYTHON) -m speclens.report --config configs/smoke.yaml --results /tmp/speclens-smoke/results --paper /tmp/speclens-smoke/paper
 
-stage2:
-	$(PYTHON) scripts/run_stage2.py
+experiments:  ## every training run in the paper (a few CPU-hours; resumable)
+	$(PYTHON) -m speclens.experiment --config configs/paper.yaml --out results --workers $(WORKERS)
 
-plots:
-	$(PYTHON) scripts/make_plots.py
+report:  ## figures, tables and numbers from results/ (seconds)
+	$(PYTHON) -m speclens.report --config configs/paper.yaml --results results --paper paper
 
-tables:
-	$(PYTHON) scripts/make_tables.py
+paper: report  ## compile paper/main.pdf (needs latexmk or tectonic)
+	cd paper && (latexmk -pdf -interaction=nonstopmode main.tex || tectonic main.tex)
 
-paper:
-	$(PYTHON) scripts/make_paper.py
-
-clean_artifacts:
-	$(PYTHON) scripts/cleanup_artifacts.py
-
-report:
-	$(PYTHON) scripts/report_status.py
+all: experiments paper
