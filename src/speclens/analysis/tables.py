@@ -27,9 +27,14 @@ def _escape(text: str) -> str:
     return text.replace("%", "\\%").replace("_", "\\_").replace("->", "$\\rightarrow$").replace(">=", "$\\geq$")
 
 
+def _ragged(*widths: float) -> str:
+    """Ragged-right paragraph columns of the given fractions of the line width."""
+    return "".join(f">{{\\raggedright\\arraybackslash}}p{{{w}\\linewidth}}" for w in widths)
+
+
 def task_table(path: Path) -> None:
     lines = [
-        "\\begin{tabular}{@{}p{0.13\\linewidth}p{0.27\\linewidth}p{0.27\\linewidth}p{0.25\\linewidth}@{}}",
+        "\\begin{tabular}{@{}" + _ragged(0.14, 0.3, 0.26, 0.24) + "@{}}",
         "\\toprule",
         "Task & Corruption channel $C$ & Shift $\\Delta$ (OOD) & Hack label \\\\",
         "\\midrule",
@@ -44,7 +49,7 @@ def task_table(path: Path) -> None:
 def spec_table(path: Path) -> None:
     """Full proxy reward, true objective and success definition of every task."""
     lines = [
-        "\\begin{tabular}{@{}p{0.13\\linewidth}p{0.3\\linewidth}p{0.27\\linewidth}p{0.22\\linewidth}@{}}",
+        "\\begin{tabular}{@{}" + _ragged(0.14, 0.32, 0.28, 0.2) + "@{}}",
         "\\toprule",
         "Task & Proxy reward $R_p$ & True objective $J_t$ & Success \\\\",
         "\\midrule",

@@ -172,37 +172,28 @@ def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -
     """Held-out hack-monitor AUC per channel, with single-feature and OOD-transfer markers."""
     apply_style()
     data = results[(results.target == "hack") & (results.model == model)]
-    channels = list(CHANNEL_COLORS)
+    envs = envs_in(results)
     fig, ax = plt.subplots(figsize=(6.4, 2.6))
     width = 0.22
-    envs = envs_in(results)
     for e, env in enumerate(envs):
-        for c, channel in enumerate(channels):
-            row = data[(data.env == env) & (data.channel == channel)]
-            if row.empty:
-                continue
-            row = row.iloc[0]
+        if data[data.env == env].empty:
+            status = results[(results.env == env) & (results.target == "hack")].iloc[0]
+            ax.text(
+                e,
+                0.75,
+                f"labels {status.label_status}\n({status.positive_rate:.0%} hacks)",
+                ha="center",
+                va="center",
+                fontsize=7,
+                color=INK_SECONDARY,
+            )
+            continue
+        for c, channel in enumerate(CHANNEL_COLORS):
+            row = data[(data.env == env) & (data.channel == channel)].iloc[0]
             x = e + (c - 1) * (width + 0.04)
-            ax.bar(
-                x,
-                row.auc - 0.5,
-                bottom=0.5,
-                width=width,
-                color=CHANNEL_COLORS[channel],
-                label=channel if e == 0 else None,
-            )
-            ax.errorbar(
-                x, row.auc, yerr=[[row.auc - row.auc_lo], [row.auc_hi - row.auc]], color=INK, linewidth=0.8, capsize=0
-            )
-            ax.scatter(
-                x,
-                row.best_feature_auc,
-                marker="D",
-                s=14,
-                color=INK,
-                zorder=3,
-                label="best single feature" if e == 0 and c == 0 else None,
-            )
+            ax.bar(x, row.auc - 0.5, bottom=0.5, width=width, color=CHANNEL_COLORS[channel], label=f"{channel} channel")
+            ax.errorbar(x, row.auc, yerr=[[row.auc - row.auc_lo], [row.auc_hi - row.auc]], color=INK, linewidth=0.8)
+            ax.scatter(x, row.best_feature_auc, marker="D", s=14, color=INK, zorder=3, label="best single feature")
             ax.scatter(
                 x,
                 row.ood_auc,
@@ -212,13 +203,27 @@ def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -
                 edgecolor=INK,
                 linewidth=0.9,
                 zorder=3,
-                label="ID → OOD transfer" if e == 0 and c == 0 else None,
+                label="ID → OOD transfer",
             )
     ax.set_xticks(range(len(envs)), envs)
-    ax.set_ylim(0.5, 1.01)
+    ax.set_xlim(-0.5, len(envs) - 0.5)
+    lowest = data[["auc_lo", "best_feature_auc", "ood_auc"]].min().min() if not data.empty else 0.5
+    ax.set_ylim(min(0.5, lowest - 0.03), 1.01)
+    ax.axhline(0.5, color=INK_SECONDARY, linewidth=0.6)
     ax.set_ylabel("Hack-monitor ROC-AUC")
     ax.grid(axis="x", visible=False)
-    ax.legend(loc="upper center", ncol=5, bbox_to_anchor=(0.5, 1.2), handlelength=1.2, columnspacing=1.0)
+    handles = dict(zip(*reversed(ax.get_legend_handles_labels())))
+    order = [f"{c} channel" for c in CHANNEL_COLORS] + ["best single feature", "ID → OOD transfer"]
+    order = [label for label in order if label in handles]
+    ax.legend(
+        [handles[k] for k in order],
+        order,
+        loc="upper center",
+        ncol=5,
+        bbox_to_anchor=(0.5, 1.22),
+        handlelength=1.2,
+        columnspacing=1.0,
+    )
     fig.tight_layout()
     save(fig, path)
 
