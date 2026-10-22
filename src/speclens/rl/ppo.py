@@ -99,8 +99,10 @@ def train_ppo(
     Each of the ``config.n_envs`` environments draws layouts from its own RNG
     stream derived from ``seed``, so a run is fully determined by ``seed``.
     ``checkpoint_steps`` lists environment-step counts at which to snapshot
-    the policy (the snapshot is taken at the first update boundary at or after
-    each count).
+    the policy. Each snapshot is taken at the first update boundary at or after
+    its count; counts beyond the last update (``total_steps`` need not be a
+    multiple of the batch size) are served by the final policy, so exactly one
+    snapshot is returned per requested count.
     """
     if reward not in ("proxy", "true"):
         raise ValueError(f"reward must be 'proxy' or 'true', got {reward!r}")
@@ -156,7 +158,7 @@ def train_ppo(
         for key in ("proxy_return", "true_return", "success", "hack", "exploit_events", "length"):
             row[key] = float(np.mean([ep[key] for ep in finished])) if finished else float("nan")
         log.append(row)
-        while pending and steps >= pending[0]:
+        while pending and (steps >= pending[0] or update == config.n_updates - 1):
             pending.pop(0)
             checkpoints.append((steps, {k: v.clone() for k, v in model.state_dict().items()}))
     return TrainResult(model=model, log=log, checkpoints=checkpoints, wall_clock_sec=time.time() - start)

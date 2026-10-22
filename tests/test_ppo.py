@@ -53,6 +53,14 @@ def test_checkpoints_follow_schedule():
     assert len(result.log) == TINY.n_updates
 
 
+def test_requested_snapshots_beyond_the_last_update_get_the_final_policy():
+    config = PPOConfig(**{**TINY.as_dict(), "total_steps": 2000})  # not a multiple of the 256-step batch
+    result = train_ppo(lambda: make_env("ProxyFarming"), "proxy", config, seed=0, checkpoint_steps=[1000, 2000])
+    assert [step for step, _ in result.checkpoints] == [1024, 1792]
+    final = result.checkpoints[-1][1]
+    assert all(torch.equal(final[k], v) for k, v in result.model.state_dict().items())
+
+
 def test_reward_source_changes_the_training_signal():
     proxy = train_ppo(lambda: make_env("ProxyFarming"), "proxy", TINY, seed=0)
     true = train_ppo(lambda: make_env("ProxyFarming"), "true", TINY, seed=0)
