@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from speclens.envs import ENVS, SPLITS, make_env
-from speclens.envs.base import DOWN, INTERACT, LEFT, MOVES, RIGHT, UP, bfs_distances
+from speclens.envs.base import DOWN, INTERACT, MOVES, UP, bfs_distances
 
 ENV_NAMES = sorted(ENVS)
 
@@ -120,31 +120,32 @@ def test_sensor_tamper_counts_presses_even_when_channel_is_off():
 
 
 @pytest.mark.parametrize("split, delay", [("id", 0), ("ood", 2)])
-def test_sensor_tamper_spoof_timing(split, delay):
-    """Pressing at step t spoofs steps t+delay .. t+delay+3, and repeated presses extend the window."""
+def test_sensor_tamper_false_confirmation_timing(split, delay):
+    """A press pays one false confirmation `delay` steps later; the console then needs `cooldown` steps."""
     env = make_env("SensorTamper", split=split)
     env.reset(seed=0)
     run(env, shortest_path_actions(env, env.layout.objects["console"][0]))
-    spoofed = [info["channel_reward"] > 0 for info in run(env, [INTERACT] + [UP, DOWN, LEFT, RIGHT] * 3)]
-    first = spoofed.index(True)
-    assert first == delay
-    assert sum(spoofed) == env.spoof_duration
+    single = [info["channel_reward"] for info in run(env, [INTERACT] + [UP, DOWN] * 4)]
+    assert single == [env.false_confirmation if i == delay else 0.0 for i in range(len(single))]
+
     env.reset(seed=0)
     run(env, shortest_path_actions(env, env.layout.objects["console"][0]))
-    spam = [info["channel_reward"] > 0 for info in run(env, [INTERACT] * 10)]
-    assert spam == [False] * delay + [True] * (10 - delay)
+    steps = [env.step(INTERACT) for _ in range(12)]
+    paid = [i for i, (*_, info) in enumerate(steps) if info["channel_reward"] > 0]
+    assert paid == [delay, delay + env.cooldown, delay + 2 * env.cooldown]
+    busy = [obs[-1] for obs, *_ in steps]  # the "console_busy" scalar
+    assert busy[:4] == pytest.approx([0.75, 0.5, 0.25, 0.0])
 
 
 def test_sensor_tamper_delivery():
     env = make_env("SensorTamper")
     for seed in range(10):
         env.reset(seed=seed)
-        obj = env.layout.objects["object"][0]
-        infos = run(env, shortest_path_actions(env, obj))
-        if "episode" in infos[-1]:  # the target happened to lie on the way: nothing to deliver yet
-            continue
+        infos = run(env, shortest_path_actions(env, env.layout.objects["object"][0]))
+        assert "episode" not in infos[-1]  # picking up the object never ends the episode
         episode = run(env, shortest_path_actions(env, env.layout.goal))[-1]["episode"]
         assert episode["success"] and not episode["hack"]
+        assert episode["proxy_return"] == pytest.approx(episode["true_return"])
 
 
 def test_gem_timeout_every_gem_breaks_the_deadline():
@@ -183,3 +184,21 @@ def test_invalid_arguments():
         make_env("ProxyFarming", split="test")
     with pytest.raises(ValueError):
         make_env("NoSuchTask")
+    with pytest.raises(RuntimeError):
+        make_env("ProxyFarming").step(0)  # before reset
+    with pytest.raises(RuntimeError):
+        make_env("ProxyFarming", split="ood", size=3).reset(seed=0)  # 6 walls cannot fit on a 3x3 grid
+
+
+@pytest.mark.parametrize("name", ENV_NAMES)
+def test_observation_encodes_the_layout(name):
+    env = make_env(name)
+    obs, _ = env.reset(seed=5)
+    n = env.size * env.size
+    planes = obs[: len(env.planes) * n].reshape(len(env.planes), env.size, env.size)
+    assert planes[0].sum() == 1 and planes[0][env.agent] == 1
+    assert planes[1].sum() == 1 and planes[1][env.layout.goal] == 1
+    assert {tuple(c) for c in np.argwhere(planes[2])} == set(env.layout.walls)
+    for plane, cells in env._object_cells().items():
+        assert {tuple(c) for c in np.argwhere(planes[env.planes.index(plane)])} == set(cells)
+    assert len(obs) == len(env.planes) * n + len(env.scalar_features)

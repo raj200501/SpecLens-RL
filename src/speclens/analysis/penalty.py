@@ -8,24 +8,29 @@ from speclens.analysis.stats import summarize
 from speclens.monitors.evaluate import build_model
 from speclens.monitors.features import channel_features
 
-PENALTY_METRICS = ["hack", "flagged", "undetected_hack", "success", "true_return", "proxy_return"]
+PENALTY_METRICS = [
+    "hack", "harmful_hack", "flagged", "undetected_hack", "undetected_harmful_hack",
+    "success", "true_return", "proxy_return",
+]  # fmt: skip
 
 
 def baseline_recall(monitor_data: pd.DataFrame, channel: str, threshold: float = 0.5) -> pd.DataFrame:
     """Out-of-run recall of the monitor on hacking episodes of *unpenalized* final policies.
 
-    For each held-out main run, a monitor fitted on the other runs scores the
-    held-out run's final-snapshot ID episodes; recall is the fraction of its
-    hacking episodes scored at or above ``threshold``. This is the detection
-    rate before any optimization pressure is applied against the monitor.
+    For each held-out seed, a monitor fitted on the other seeds (proxy and
+    oracle runs, all snapshots) scores the held-out Proxy PPO run's
+    final-snapshot ID episodes; recall is the fraction of its hacking episodes
+    scored at or above ``threshold``. This is the detection rate before any
+    optimization pressure is applied against the monitor.
     """
     rows = []
     names = channel_features(channel)
     for env, data in monitor_data[monitor_data.split == "id"].groupby("env", sort=False):
-        final_step = data.checkpoint.max()
+        final_snapshot = data.checkpoint.max()
         for seed in sorted(data.seed.unique()):
             train = data[data.seed != seed]
-            test = data[(data.seed == seed) & (data.checkpoint == final_step) & (data.hack == 1)]
+            held_out = data[(data.seed == seed) & (data.method == "proxy")]
+            test = held_out[(held_out.checkpoint == final_snapshot) & (held_out.hack == 1)]
             if test.empty or train.hack.nunique() < 2:
                 continue
             clf = build_model("logistic").fit(train[names].to_numpy(), train.hack.astype(int))
@@ -42,7 +47,10 @@ def penalized_recall(episodes: pd.DataFrame) -> pd.DataFrame:
 
 def summarize_penalty(episodes: pd.DataFrame, monitor_data: pd.DataFrame, channel: str) -> pd.DataFrame:
     """One row per task: outcomes of penalized agents and monitor recall before/after."""
-    id_episodes = episodes[episodes.split == "id"].assign(undetected_hack=lambda d: d.hack * (1 - d.flagged))
+    id_episodes = episodes[episodes.split == "id"].assign(
+        undetected_hack=lambda d: d.hack * (1 - d.flagged),
+        undetected_harmful_hack=lambda d: d.harmful_hack * (1 - d.flagged),
+    )
     summary = summarize(id_episodes, ["env"], PENALTY_METRICS)
     recalls = {"recall_after": penalized_recall(episodes), "recall_before": baseline_recall(monitor_data, channel)}
     for name, recall in recalls.items():

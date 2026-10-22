@@ -15,12 +15,19 @@ agent, not of the reward functions alone.
 \paragraph{Design choices were calibrated.} The network architecture and the
 default channel magnitudes were chosen in single-seed pilot runs so that Oracle
 PPO learns every task within the budget and the default channel is exploited
-(Appendix~\ref{app:details}). The dose--response experiment reports outcomes
-across magnitudes so that this choice is visible rather than hidden.
+(Appendix~\ref{app:details}). That Proxy PPO underperforms Oracle PPO on $J_t$
+is therefore a sanity check of the design, not a finding; the dose--response
+experiment reports outcomes across magnitudes so that the calibration is
+visible rather than hidden.
 
 \paragraph{Hand-crafted monitors.} Our monitors are linear models and shallow
-trees over twenty hand-written trajectory features. Stronger monitors could do
-better, and monitors with access to an agent's internals or reasoning are out of
-scope. The monitor datasets pool snapshots of a single training run per
-lineage; monitoring a different policy family, or a policy optimized against
-the monitor \citep{baker2025monitoring}, may behave differently.
+trees over at most \res{n-features-privileged} hand-written trajectory features.
+Stronger monitors could do better, and monitors with access to an agent's
+internals or reasoning are out of scope. Hack labels count uses of the channel,
+not harm; we therefore also report harmful hacks (channel use without task
+success), and the label thresholds are task-specific.
+
+\paragraph{Training against a monitor.} Our monitor-penalty experiment uses one
+penalty weight, one monitor channel and a fixed monitor. A monitor that is
+retrained as the agent changes, or a penalty that is annealed, may behave
+differently.

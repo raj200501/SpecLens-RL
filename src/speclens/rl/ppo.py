@@ -33,6 +33,7 @@ class PPOConfig:
     epochs: int = 4
     minibatch_size: int = 512
     learning_rate: float = 3e-4
+    adam_eps: float = 1e-5
     anneal_lr: bool = True
     gamma: float = 0.99
     gae_lambda: float = 0.95
@@ -112,7 +113,7 @@ def train_ppo(
     env_seeds = np.random.SeedSequence(seed).spawn(config.n_envs)
     obs = np.stack([env.reset(seed=int(s.generate_state(1)[0]))[0] for env, s in zip(envs, env_seeds)])
     model = ActorCritic.for_env(envs[0], hidden=config.hidden, channels=config.channels)
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate, eps=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate, eps=config.adam_eps)
 
     T, N = config.rollout_steps, config.n_envs
     buf_obs = np.zeros((T, N, obs.shape[1]), dtype=np.float32)

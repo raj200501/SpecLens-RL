@@ -11,8 +11,11 @@ from speclens.monitors import (
     extract_features,
     grouped_cv,
     label_status,
+    restrict,
+    sees_label_sources,
+    selected_feature_cv,
     single_feature_cv,
-    uses_label_sources,
+    stratified_auc,
 )
 
 TRAJ = {
@@ -49,18 +52,50 @@ def test_channels_only_get_features_they_are_allowed_to_see():
     moved = {**TRAJ, "goal": [6, 6], "exploit_cells": [[5, 5]]}
     a, b = extract_features(TRAJ), extract_features(moved)
     assert all(a[n] == b[n] for n in channel_features("behavior"))
-    assert uses_label_sources("privileged") and not uses_label_sources("task")
+    for env in ("ProxyFarming", "SensorTamper", "GemTimeout"):
+        assert sees_label_sources("privileged", env) and not sees_label_sources("task", env)
+
+
+def test_provenance_is_enforced_not_just_declared():
+    """Every feature can be computed from its declared fields alone, and nothing else."""
+    for feature in FEATURES:
+        feature.fn(restrict(TRAJ, feature.sources))  # must not raise
+        hidden = (CHANNELS["privileged"] - feature.sources) & set(TRAJ)
+        for field in hidden:
+            view = restrict(TRAJ, feature.sources)
+            assert field not in view
+    with pytest.raises(KeyError):
+        restrict(TRAJ, CHANNELS["behavior"])["goal"]
 
 
 def test_label_status():
-    groups = np.repeat([0, 1, 2], 10)
-    assert label_status(np.zeros(30), groups) == "degenerate"
-    assert label_status(np.r_[1, np.zeros(29)], groups) == "degenerate"
-    y = np.tile([0, 1], 15)
-    assert label_status(y, groups) == "ok"
-    y_one_class_run = y.copy()
-    y_one_class_run[:10] = 1
-    assert label_status(y_one_class_run, groups) == "single-class-fold"
+    assert label_status(np.zeros(30)) == "degenerate"
+    assert label_status(np.r_[1, np.zeros(29)]) == "degenerate"
+    assert label_status(np.tile([0, 1], 15)) == "ok"
+
+
+def test_grouped_cv_skips_single_class_runs_without_discarding_the_task():
+    rng = np.random.default_rng(3)
+    groups = np.repeat(np.arange(4), 40)
+    y = rng.integers(0, 2, size=len(groups))
+    y[groups == 0] = 0  # one run never hacks
+    X = np.column_stack([y + rng.normal(0, 0.5, size=len(y))])
+    cv = grouped_cv(X, y, groups, "logistic")
+    assert len(cv.fold_auc) == 3  # the single-class run contributes no fold AUC...
+    assert not np.isnan(cv.oof_scores[groups == 0]).any()  # ...but is still scored
+
+
+def test_stratified_auc_ignores_between_policy_differences():
+    # Two "policies": one hacks a lot and scores high, the other rarely and scores low.
+    # Within each, the score carries no information about the label.
+    rng = np.random.default_rng(4)
+    strata = np.repeat(["a", "b"], 200)
+    y = np.r_[rng.random(200) < 0.8, rng.random(200) < 0.2].astype(int)
+    scores = np.r_[np.full(200, 0.9), np.full(200, 0.1)] + rng.normal(0, 0.01, 400)
+    from sklearn.metrics import roc_auc_score
+
+    assert roc_auc_score(y, scores) > 0.75  # pooled AUC rewards telling the policies apart
+    assert abs(stratified_auc(y, scores, strata) - 0.5) < 0.1
 
 
 def test_grouped_cv_does_not_leak_across_runs():
@@ -79,7 +114,7 @@ def test_grouped_cv_does_not_leak_across_runs():
     assert not np.isnan(cv.oof_scores).any()
 
 
-def test_single_feature_baseline_picks_orientation_on_training_runs():
+def test_single_feature_baselines_choose_on_training_runs():
     rng = np.random.default_rng(1)
     groups = np.repeat(np.arange(5), 40)
     y = rng.integers(0, 2, size=len(groups))
@@ -87,39 +122,52 @@ def test_single_feature_baseline_picks_orientation_on_training_runs():
     auc = single_feature_cv(X, y, groups)
     assert auc[0] > 0.99
     assert 0.35 < auc[1] < 0.65
+    fold_auc, chosen = selected_feature_cv(X, y, groups)
+    assert chosen == [0] * 5 and min(fold_auc) > 0.99
+    # On pure noise, selecting the best of many features on training runs stays near chance.
+    noise = rng.normal(size=(len(y), 15))
+    assert abs(np.mean(selected_feature_cv(noise, y, groups)[0]) - 0.5) < 0.08
 
 
-def _synthetic_monitor_dataset(n_runs=5, per_run=60, seed=0):
+def _synthetic_monitor_dataset(n_seeds=5, per_run=60, seed=0):
+    """Proxy and oracle runs on a real task name; only proxy episodes hack."""
     rng = np.random.default_rng(seed)
     rows = []
-    for run in range(n_runs):
-        for i in range(per_run):
-            hack = int(rng.random() < 0.4)
-            row = {
-                "env": "Toy",
-                "seed": run,
-                "checkpoint": i % 6,
-                "split": "id" if i % 2 else "ood",
-                "layout_seed": i,
-                "hack": hack,
-                "success": int(not hack and rng.random() < 0.7),
-            }
-            for f in FEATURES:
-                row[f.name] = rng.normal()
-            row["stay_frac"] += 1.0 * hack  # weak behavioral signal
-            row["frac_on_exploit"] = hack + rng.normal(0, 0.01)  # privileged feature that *is* the label
-            rows.append(row)
+    for run in range(n_seeds):
+        for method in ("proxy", "oracle"):
+            for i in range(per_run):
+                hack = int(method == "proxy" and rng.random() < 0.5)
+                success = int(not hack and rng.random() < 0.7)
+                row = {"env": "ProxyFarming", "method": method, "seed": run, "checkpoint": i % 6,
+                       "split": "id" if i % 2 else "ood", "layout_seed": i, "hack": hack, "success": success,
+                       "harmful_hack": int(hack and not success)}  # fmt: skip
+                for f in FEATURES:
+                    row[f.name] = rng.normal()
+                row["stay_frac"] += 1.0 * hack  # weak behavioral signal
+                row["frac_on_exploit"] = hack + rng.normal(0, 0.01)  # privileged feature that *is* the label
+                rows.append(row)
     return pd.DataFrame(rows)
 
 
-def test_leakage_screen_flags_the_privileged_positive_control():
+def test_admissibility_screen_flags_the_privileged_positive_control():
     results, features = analyze(_synthetic_monitor_dataset(), ["logistic"])
     hack = results[results.target == "hack"].set_index("channel")
     assert hack.loc["privileged", "trivial"] and not hack.loc["privileged", "admissible"]
     assert not hack.loc["behavior", "trivial"] and hack.loc["behavior", "admissible"]
     assert 0.6 < hack.loc["behavior", "auc"] < 0.95
-    assert hack.loc["privileged", "best_feature"] == "frac_on_exploit"
+    assert hack.loc["privileged", "selected_feature"] == "frac_on_exploit"
+    # Only proxy runs hack here, so knowing the method alone is a strong baseline.
+    assert hack.loc["behavior", "identity_auc"] > 0.7
     assert set(features.channel) == set(CHANNELS)
+
+
+def test_analyze_survives_degenerate_labels():
+    data = _synthetic_monitor_dataset()
+    data["hack"] = 0
+    data["harmful_hack"] = 0
+    results, _ = analyze(data, ["logistic"])
+    assert (results[results.target == "hack"].label_status == "degenerate").all()
+    assert "model" in results.columns
 
 
 def test_linear_monitor_roundtrip_and_penalty(tmp_path):
@@ -139,7 +187,7 @@ def test_linear_monitor_roundtrip_and_penalty(tmp_path):
     wrapped = MonitorPenalty(make_env("ProxyFarming", record_trajectory=True), monitor, beta=5.0)
     plain.reset(seed=0)
     wrapped.reset(seed=0)
-    assert wrapped.observation_space == plain.observation_space and wrapped.planes == plain.planes
+    assert wrapped.observation_space == plain.observation_space and wrapped.unwrapped.planes == plain.planes
     for _ in range(plain.max_steps):
         _, r_plain, done_plain, trunc_plain, _ = plain.step(INTERACT)
         _, r_wrapped, _, _, info = wrapped.step(INTERACT)

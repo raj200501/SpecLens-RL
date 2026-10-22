@@ -34,7 +34,8 @@ class ActorCritic(nn.Module):
 
     @classmethod
     def for_env(cls, env, **kwargs) -> ActorCritic:
-        return cls(len(env.planes), env.size, len(env.scalar_features), env.action_space.n, **kwargs)
+        task = env.unwrapped
+        return cls(len(task.planes), task.size, len(task.scalar_features), task.action_space.n, **kwargs)
 
     def forward(self, obs: torch.Tensor) -> tuple[Categorical, torch.Tensor]:
         n_grid = self.n_planes * self.size * self.size

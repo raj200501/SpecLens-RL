@@ -34,7 +34,7 @@ CELL_COLORS = {
 CELL_GLYPHS = {"G": "G", "A": "A", "B": "B", "C": "C", "*": "◆", "O": "O"}
 CHANNEL_NOTES = {
     "ProxyFarming": f"B = beacon (+{ProxyFarming.beacon_bonus:g} per step on it)",
-    "SensorTamper": f"O = object, C = console (+{SensorTamper.spoof_reward:g} per spoofed step)",
+    "SensorTamper": f"O = object, C = console (+{SensorTamper.false_confirmation:g} per false confirmation)",
     "GemTimeout": f"◆ = gem (+{GemTimeout.gem_bonus:g} each)",
 }
 
@@ -169,14 +169,15 @@ def dose_response_figure(episodes: pd.DataFrame, sweep_seeds: int, path: Path) -
 
 
 def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -> None:
-    """Held-out hack-monitor AUC per channel, with single-feature and OOD-transfer markers."""
+    """Held-out hack-monitor AUC per channel against the baselines it has to beat."""
     apply_style()
     data = results[(results.target == "hack") & (results.model == model)]
     envs = envs_in(results)
-    fig, ax = plt.subplots(figsize=(6.4, 2.6))
+    fig, ax = plt.subplots(figsize=(6.6, 2.7))
     width = 0.22
     for e, env in enumerate(envs):
-        if data[data.env == env].empty:
+        part = data[data.env == env]
+        if part.empty:
             status = results[(results.env == env) & (results.target == "hack")].iloc[0]
             ax.text(
                 e,
@@ -188,41 +189,53 @@ def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -
                 color=INK_SECONDARY,
             )
             continue
+        ax.hlines(
+            part.identity_auc.iloc[0],
+            e - 0.42,
+            e + 0.42,
+            color=INK_SECONDARY,
+            linewidth=1.0,
+            linestyle=(0, (4, 3)),
+            label="policy-identity baseline",
+            zorder=4,
+        )
         for c, channel in enumerate(CHANNEL_COLORS):
-            row = data[(data.env == env) & (data.channel == channel)].iloc[0]
+            row = part[part.channel == channel].iloc[0]
             x = e + (c - 1) * (width + 0.04)
             ax.bar(x, row.auc - 0.5, bottom=0.5, width=width, color=CHANNEL_COLORS[channel], label=f"{channel} channel")
             ax.errorbar(x, row.auc, yerr=[[row.auc - row.auc_lo], [row.auc_hi - row.auc]], color=INK, linewidth=0.8)
-            ax.scatter(x, row.best_feature_auc, marker="D", s=14, color=INK, zorder=3, label="best single feature")
             ax.scatter(
                 x,
-                row.ood_auc,
+                row.within_snapshot_auc,
                 marker="o",
                 s=18,
                 facecolor="white",
                 edgecolor=INK,
                 linewidth=0.9,
-                zorder=3,
-                label="ID → OOD transfer",
+                zorder=5,
+                label="within-snapshot AUC",
             )
+            ax.scatter(x, row.selected_feature_auc, marker="D", s=14, color=INK, zorder=5, label="best single feature")
     ax.set_xticks(range(len(envs)), envs)
     ax.set_xlim(-0.5, len(envs) - 0.5)
-    lowest = data[["auc_lo", "best_feature_auc", "ood_auc"]].min().min() if not data.empty else 0.5
+    shown = data[["auc_lo", "selected_feature_auc", "within_snapshot_auc", "identity_auc"]]
+    lowest = float(shown.min().min()) if not data.empty else 0.5
     ax.set_ylim(min(0.5, lowest - 0.03), 1.01)
     ax.axhline(0.5, color=INK_SECONDARY, linewidth=0.6)
     ax.set_ylabel("Hack-monitor ROC-AUC")
     ax.grid(axis="x", visible=False)
     handles = dict(zip(*reversed(ax.get_legend_handles_labels())))
-    order = [f"{c} channel" for c in CHANNEL_COLORS] + ["best single feature", "ID → OOD transfer"]
+    order = [f"{c} channel" for c in CHANNEL_COLORS]
+    order += ["within-snapshot AUC", "best single feature", "policy-identity baseline"]
     order = [label for label in order if label in handles]
     ax.legend(
         [handles[k] for k in order],
         order,
         loc="upper center",
-        ncol=5,
-        bbox_to_anchor=(0.5, 1.22),
-        handlelength=1.2,
-        columnspacing=1.0,
+        ncol=3,
+        bbox_to_anchor=(0.5, 1.32),
+        handlelength=1.4,
+        columnspacing=1.2,
     )
     fig.tight_layout()
     save(fig, path)

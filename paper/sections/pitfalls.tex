@@ -19,8 +19,9 @@ layouts are distinct.
 \item \textbf{A leakage screen that screened nothing.} Features were flagged as
 suspicious by matching tokens in their names; no feature name matched, so every
 channel passed. \emph{Now:} channels are defined by the provenance of their
-features (Section~\ref{sec:protocol}), a privileged channel serves as a positive
-control that the screen must flag, and a test checks this on synthetic data.
+features, provenance is enforced when features are computed
+(Section~\ref{sec:protocol}), and a privileged channel serves as a positive
+control that the screen must flag.
 
 \item \textbf{A causal ablation that ablated the measurement.} Switching off the
 tampering effect also switched off the counter that defined the hack label, so
@@ -37,10 +38,10 @@ dropped.
 
 \item \textbf{Hand-copied numbers.} Some numbers in the earlier manuscript came
 from exploratory runs that the documented pipeline could not regenerate.
-\emph{Now:} every number in this paper is a macro written by
-\texttt{speclens.report} from the committed result files, and continuous
-integration regenerates the macros and tables and fails if they differ from the
-committed versions.
+\emph{Now:} every experimental result and every training setting quoted in
+this paper is a macro written by \texttt{speclens.report} from the committed
+result files and configuration, and continuous integration regenerates the
+macros and tables and fails if they differ from the committed versions.
 \end{enumerate}
 
 None of these errors required unusual carelessness; each produced a clean-

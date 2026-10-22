@@ -15,6 +15,7 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+import gymnasium as gym
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
@@ -58,29 +59,23 @@ class LinearMonitor:
         return cls(**{k: tuple(v) if isinstance(v, list) else v for k, v in payload.items()})
 
 
-class MonitorPenalty:
+class MonitorPenalty(gym.Wrapper):
     """Subtract ``beta * monitor score`` from the proxy reward when an episode ends.
 
-    Behaves like the wrapped :class:`GridTask` for everything else, so it can be
-    passed anywhere an environment is expected. The episode statistics in
-    ``info["episode"]`` are those of the unwrapped task, plus ``monitor_score``.
+    The episode statistics in ``info["episode"]`` are those of the wrapped task
+    (proxy return excludes the penalty), plus the ``monitor_score``.
     """
 
     def __init__(self, env: GridTask, monitor: LinearMonitor, beta: float) -> None:
-        if not env.record_trajectory:
+        if not env.unwrapped.record_trajectory:
             raise ValueError("MonitorPenalty needs an environment created with record_trajectory=True")
-        self.env, self.monitor, self.beta = env, monitor, beta
-
-    def __getattr__(self, name):
-        return getattr(self.env, name)
-
-    def reset(self, **kwargs):
-        return self.env.reset(**kwargs)
+        super().__init__(env)
+        self.monitor, self.beta = monitor, beta
 
     def step(self, action: int):
         obs, reward, terminated, truncated, info = self.env.step(action)
         if terminated or truncated:
-            score = self.monitor.score_trajectory(self.env.trajectory())
+            score = self.monitor.score_trajectory(self.env.unwrapped.trajectory())
             reward -= self.beta * score
             info["episode"]["monitor_score"] = score
         return obs, reward, terminated, truncated, info

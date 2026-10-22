@@ -19,14 +19,17 @@ computes its reward from merely exploiting a flawed reward function.
 \citet{denison2024sycophancy} find that language models trained on a curriculum
 of gameable environments occasionally generalize to editing their own reward
 function. \ST{} is a minimal instance of the first kind: the reward is computed
-from a sensor that the agent can spoof.
+from a delivery sensor, and the agent can make that sensor report deliveries
+that did not happen.
 
 \paragraph{Shaping and goal misgeneralization.}
 Shaping rewards preserve optimal policies only if they are potential-based
 \citep{ng1999policy}; \PF{} uses a non-potential bonus precisely so that it
 creates a farmable cycle. \citet{langosco2022goal} show that agents can keep
-their capabilities under distribution shift while pursuing the wrong goal, which
-is the failure our OOD splits are designed to expose.
+their capabilities under distribution shift while pursuing the wrong goal. Our
+OOD splits are simpler parameter shifts (wall density, a delayed channel, more
+gems); they test whether a learned exploit persists, not whether goals
+misgeneralize.
 
 \paragraph{Monitoring for misbehavior.}
 \citet{pan2022effects} propose detecting aberrant policies as an anomaly-

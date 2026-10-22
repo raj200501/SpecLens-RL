@@ -17,9 +17,12 @@ task on the main monitor dataset and trains fresh Proxy PPO agents against it.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import platform
+import subprocess
+import time
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,6 +44,9 @@ from speclens.rl import ActorCritic, PPOConfig, train_ppo
 EVAL_SEEDS = {"id": 1_000_000, "ood": 2_000_000}
 CURVE_SEED = 3_000_000
 MONITOR_SEED = 4_000_000
+
+# Modules whose behavior determines a run's outputs; editing any of them invalidates cached runs.
+FINGERPRINT_MODULES = ("envs", "rl", "evaluation.py", "monitors/features.py", "monitors/penalty.py")
 
 EPISODE_COLUMNS = ["proxy_return", "true_return", "channel_return", "exploit_events", "success", "hack", "length"]
 
@@ -75,7 +81,7 @@ def load_config(path: str | Path) -> dict:
 def plan_runs(cfg: dict) -> list[Run]:
     """All training runs implied by a config, main matrix first."""
     runs = [
-        Run(env, method, seed, collect_monitor=(method == "proxy"))
+        Run(env, method, seed, collect_monitor=True)
         for env in cfg["envs"]
         for method in cfg["main"]["methods"]
         for seed in range(cfg["main"]["seeds"])
@@ -115,11 +121,53 @@ def checkpoint_schedule(total_steps: int, n: int) -> list[int]:
     return [round(total_steps * (k + 1) / n) for k in range(n)]
 
 
+def code_fingerprint() -> str:
+    """Hash of the source files that determine what a run produces."""
+    root = Path(__file__).resolve().parent
+    digest = hashlib.sha256()
+    for module in FINGERPRINT_MODULES:
+        for path in sorted((root / module).rglob("*.py")) if (root / module).is_dir() else [root / module]:
+            digest.update(path.relative_to(root).as_posix().encode())
+            digest.update(path.read_bytes())
+    return digest.hexdigest()[:16]
+
+
+def run_fingerprint(run: Run, cfg: dict, out: Path) -> str:
+    """Everything a run's outputs depend on: spec, relevant config, code and (if any) the monitor."""
+    payload = {
+        "run": run.meta(),
+        "collect_monitor": run.collect_monitor,
+        "ppo": cfg["ppo"],
+        "checkpoints": cfg["main"]["checkpoints"],
+        "evaluation": cfg["evaluation"],
+        "monitor": cfg["monitor"] if run.collect_monitor else None,
+        "code": code_fingerprint(),
+    }
+    if run.monitor_beta:
+        payload["hack_monitor"] = monitor_path(out, run.env).read_text(encoding="utf-8")
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def git_state() -> dict:
+    try:
+        sha = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        status = subprocess.run(["git", "status", "--porcelain", "src"], capture_output=True, text=True, check=True)
+        return {"git_sha": sha, "git_dirty_src": bool(status.stdout.strip())}
+    except (OSError, subprocess.CalledProcessError):
+        return {"git_sha": None, "git_dirty_src": None}
+
+
 def execute_run(run: Run, cfg: dict, out: Path) -> str:
-    """Train, evaluate and (optionally) collect monitor data for one run."""
+    """Train, evaluate and (optionally) collect monitor data for one run.
+
+    Skipped if the run directory holds a finished run with the same fingerprint.
+    """
     torch.set_num_threads(1)
+    started = time.time()
     run_dir = out / "runs" / run.run_id
-    if (run_dir / "done.json").exists():
+    fingerprint = run_fingerprint(run, cfg, out)
+    done = run_dir / "done.json"
+    if done.exists() and json.loads(done.read_text(encoding="utf-8")).get("fingerprint") == fingerprint:
         return f"cached {run.run_id}"
     run_dir.mkdir(parents=True, exist_ok=True)
     ppo = PPOConfig(**cfg["ppo"])
@@ -163,11 +211,16 @@ def execute_run(run: Run, cfg: dict, out: Path) -> str:
     if run.collect_monitor:
         _collect_monitor_rollouts(run, cfg, result.checkpoints, model, run_dir)
 
-    (run_dir / "done.json").write_text(
-        json.dumps({**run.meta(), "wall_clock_sec": result.wall_clock_sec, "ppo": ppo.as_dict()}, indent=2),
-        encoding="utf-8",
-    )
-    return f"trained {run.run_id} in {result.wall_clock_sec:.0f}s"
+    record = {
+        **run.meta(),
+        "fingerprint": fingerprint,
+        "train_sec": result.wall_clock_sec,
+        "total_sec": time.time() - started,
+        **git_state(),
+        "ppo": ppo.as_dict(),
+    }
+    done.write_text(json.dumps(record, indent=2), encoding="utf-8")
+    return f"finished {run.run_id} in {record['total_sec']:.0f}s"
 
 
 def _evaluate(model, run: Run, layouts, split: str, action_seed: int, monitor: LinearMonitor | None) -> list[dict]:
@@ -196,6 +249,8 @@ def _collect_monitor_rollouts(run: Run, cfg: dict, checkpoints, model: ActorCrit
     """
     mon = cfg["monitor"]
     n = mon["episodes_per_checkpoint"]
+    if n > 500 or len(checkpoints) > 100:  # keep the layout-seed blocks below disjoint
+        raise ValueError("monitor rollouts support at most 500 episodes per snapshot and 100 snapshots")
     rows = []
     for k, (step, state) in enumerate(checkpoints):
         if (k + 1) % mon["checkpoint_stride"]:
@@ -238,6 +293,7 @@ def collect(cfg: dict, out: Path, runs: list[Run] | None = None, prefix: str = "
     pd.DataFrame(meta).drop(columns="ppo").to_csv(out / f"{prefix}runs.csv", index=False, float_format="%.4g")
     environment = {
         "speclens": __version__,
+        **git_state(),
         "python": platform.python_version(),
         "torch": torch.__version__,
         "numpy": np.__version__,

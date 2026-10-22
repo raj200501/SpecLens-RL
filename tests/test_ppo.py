@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from speclens.envs import make_env
+from speclens.envs import Layout, ProxyFarming, make_env
 from speclens.evaluation import rollout
 from speclens.rl import ActorCritic, PPOConfig, compute_gae, train_ppo
 
@@ -76,3 +76,17 @@ def test_rollout_is_reproducible_and_complete():
     assert [r["layout_seed"] for r in a] == list(range(10))
     traj = rollout(model, "SensorTamper", [0], record_trajectories=True)[0]["trajectory"]
     assert len(traj["positions"]) == len(traj["actions"]) + 1
+
+
+class _FixedLayout(ProxyFarming):
+    """ProxyFarming on one fixed layout, goal ten steps away: easy to learn quickly."""
+
+    def sample_layout(self, rng):
+        return Layout(agent=(0, 0), goal=(5, 5), walls=frozenset(), objects={"beacon": [(6, 0)]})
+
+
+def test_ppo_learns_an_easy_task():
+    config = PPOConfig(total_steps=49152, n_envs=8, rollout_steps=128, minibatch_size=256, hidden=64, channels=8)
+    result = train_ppo(_FixedLayout, "true", config, seed=0)
+    assert result.log[0]["success"] < 0.2
+    assert min(row["success"] for row in result.log[-3:]) > 0.85

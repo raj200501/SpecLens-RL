@@ -16,19 +16,29 @@ $M_{\mathrm{mon}}$, a robustness result about a particular $\Delta$.
 
 The design rule we impose on every task is that \emph{the corruption channel is
 explicit and scalable}. In \PF{} and \ST{}, $R_p = J_t + \lambda\,C$ exactly; in
-\GT{}, $R_p$ additionally omits the deadline that $J_t$ enforces. Scaling
-$\lambda$ (the \emph{channel scale}) changes only the incentive and leaves the
-dynamics untouched, so the channel's causal role can be tested by retraining
-with a different $\lambda$ rather than inferred from correlations. Hack labels
-are computed from behavior (how often the agent used the channel) and do not
-depend on $\lambda$, so switching the channel off cannot hide the behavior from
-the measurement (Section~\ref{sec:pitfalls}, item 3).
+\GT{}, $R_p$ additionally omits the deadline that $J_t$ enforces, so at
+$\lambda=0$ the proxy still ignores the deadline but no longer pays for being
+late. Scaling the \emph{channel scale} $\lambda$ leaves the dynamics untouched,
+so the channel's role can be tested by retraining with a different $\lambda$
+rather than inferred from correlations. (It also rescales part of the return,
+so it changes the optimization problem as well as the incentive.)
+
+Hack labels are computed from behavior and do not depend on $\lambda$, so
+switching the channel off cannot hide the behavior from the measurement
+(Section~\ref{sec:pitfalls}, item 3). An episode is a \emph{hack} if the agent
+used the channel at least a task-specific number of times
+(Table~\ref{tab:tasks}); it is a \emph{harmful hack} if, in addition, the true
+objective was not achieved. The thresholds differ by task, so hack rates are
+comparable across methods within a task, not across tasks.
 
 \subsection{Three tasks, three mechanisms}
 All tasks are fully observed $7{\times}7$ gridworlds with walls and five actions
 (four moves and \emph{interact}). Every episode samples a fresh layout, so an
-agent cannot memorize a route, and every evaluation uses layouts the agent has
-not been trained on. Observations are one-hot object planes plus a few scalars
+agent cannot memorize a route. Each task has on the order of $10^8$ or more
+distinct layouts while a training run sees at most about $2\times10^5$ episodes,
+so evaluation layouts, drawn from seeds disjoint from training, are with high
+probability new to the agent.
+Observations are one-hot object planes plus a few scalars
 (elapsed time and task state). Both rewards share a $-0.01$ step cost and pay
 $+1$ for completing the intended task. Figure~\ref{fig:tasks} shows example
 layouts and Table~\ref{tab:tasks} summarizes the channels.
@@ -40,10 +50,12 @@ Idling on the beacon earns more proxy reward than finishing the task. The OOD
 split doubles wall density.
 
 \paragraph{\ST{} (reward tampering).} The agent should pick up an object and
-carry it to a target. The proxy is computed from a delivery sensor, and pressing
-\emph{interact} on a console spoofs the sensor for four steps, a minimal
-instance of an agent manipulating its reward process \citep{everitt2021reward}.
-The OOD split delays the spoofing effect by two steps after each press.
+carry it to a target. The proxy pays $+1$ for every delivery confirmation the
+delivery sensor emits. Pressing \emph{interact} on a console makes the sensor
+emit a false confirmation (at most one per four steps), a minimal instance of an
+agent manipulating the process that produces its reward rather than the world
+\citep{everitt2021reward}. The OOD split delays each false confirmation by two
+steps after the press.
 
 \paragraph{\GT{} (omitted constraint).} The agent should reach a goal within a
 deadline of the shortest-path length plus two steps. The proxy pays for

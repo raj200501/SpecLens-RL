@@ -14,20 +14,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.12"]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.13"  # the version requirements-lock.txt and the committed results were made with
           cache: pip
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install -e ".[dev]"
+          python -m pip install -r requirements-lock.txt --extra-index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --no-deps -e .
       - name: Lint
         run: |
           ruff check src tests
@@ -38,4 +35,5 @@ jobs:
         if: hashFiles('results/episodes.csv.gz') != ''
         run: |
           python -m speclens.report --config configs/paper.yaml --results results --paper paper
-          git diff --exit-code -- paper/generated results/numbers.json
+          git status --porcelain -- paper/generated results/numbers.json results/summary_*.csv results/monitor_*.csv
+          test -z "$(git status --porcelain -- paper/generated results/numbers.json results/summary_*.csv results/monitor_*.csv)"

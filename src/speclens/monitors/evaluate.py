@@ -1,8 +1,9 @@
-"""Monitor evaluation: grouped cross-validation, baselines and leakage screening.
+"""Monitor evaluation: grouped cross-validation and baselines.
 
 The unit of independence is the training run (one PPO seed): episodes from the
 same run share a policy lineage and are strongly correlated, so every split
-holds out whole runs and every confidence interval resamples whole runs.
+holds out whole runs. A monitor's score on a held-out run is computed by a model
+that never saw any episode of that run.
 """
 
 from __future__ import annotations
@@ -29,52 +30,94 @@ def build_model(name: str):
     raise ValueError(f"unknown monitor model {name!r}")
 
 
-def label_status(y: np.ndarray, groups: np.ndarray) -> str:
-    """``ok`` if the minority class is common enough and every held-out run contains both classes."""
+def label_status(y: np.ndarray) -> str:
+    """``ok`` if both classes occur and the minority class is at least 5% of episodes."""
     if len(np.unique(y)) < 2 or min(y.mean(), 1 - y.mean()) < MIN_MINORITY_FRAC:
         return "degenerate"
-    if any(len(np.unique(y[groups == g])) < 2 for g in np.unique(groups)):
-        return "single-class-fold"
     return "ok"
 
 
 @dataclass
 class CVResult:
-    fold_auc: list[float]  # one ROC-AUC per held-out run
-    oof_scores: np.ndarray  # out-of-fold monitor scores, aligned with the input rows
+    fold_auc: list[float]  # ROC-AUC on each held-out run that contains both classes
+    oof_scores: np.ndarray  # out-of-fold monitor scores, aligned with the input rows (NaN if not scored)
 
     @property
     def mean_auc(self) -> float:
-        return float(np.mean(self.fold_auc))
+        return float(np.mean(self.fold_auc)) if self.fold_auc else float("nan")
 
 
 def grouped_cv(X: np.ndarray, y: np.ndarray, groups: np.ndarray, model: str) -> CVResult:
-    """Leave-one-run-out cross-validation. Requires ``label_status(...) == "ok"``."""
+    """Leave-one-run-out cross-validation.
+
+    Every row is scored by a model trained on all other runs (when those contain
+    both classes). Runs whose own episodes are all one class are scored but
+    contribute no fold AUC.
+    """
     oof = np.full(len(y), np.nan)
     fold_auc = []
     for g in np.unique(groups):
         test = groups == g
+        if len(np.unique(y[~test])) < 2:
+            continue
         clf = build_model(model).fit(X[~test], y[~test])
         oof[test] = clf.predict_proba(X[test])[:, 1]
-        fold_auc.append(float(roc_auc_score(y[test], oof[test])))
+        if len(np.unique(y[test])) == 2:
+            fold_auc.append(float(roc_auc_score(y[test], oof[test])))
     return CVResult(fold_auc=fold_auc, oof_scores=oof)
 
 
-def single_feature_cv(X: np.ndarray, y: np.ndarray, groups: np.ndarray) -> np.ndarray:
-    """Held-out ROC-AUC of each feature used alone as a monitor score.
+def stratified_auc(y: np.ndarray, scores: np.ndarray, strata: np.ndarray) -> float:
+    """Mean ROC-AUC within strata that contain both classes.
 
-    The feature's orientation (whether high values indicate hacking) is chosen
-    on the training runs of each fold, so the baseline is not fit on test data.
+    With strata = (run, snapshot), this asks whether the monitor separates
+    hacking from non-hacking episodes *of the same policy*, which removes any
+    credit for recognizing which policy, or how late in training, produced an
+    episode.
+    """
+    aucs = [
+        roc_auc_score(y[strata == s], scores[strata == s])
+        for s in np.unique(strata)
+        if len(np.unique(y[strata == s])) == 2
+    ]
+    return float(np.mean(aucs)) if aucs else float("nan")
+
+
+def single_feature_cv(X: np.ndarray, y: np.ndarray, groups: np.ndarray) -> np.ndarray:
+    """Held-out ROC-AUC of each feature used alone as a monitor score (descriptive).
+
+    The feature's orientation is chosen on the training runs of each fold.
     Returns the mean over held-out runs for every column of ``X``.
     """
-    aucs = np.zeros((len(np.unique(groups)), X.shape[1]))
+    aucs = np.full((len(np.unique(groups)), X.shape[1]), np.nan)
     for k, g in enumerate(np.unique(groups)):
         test = groups == g
+        if len(np.unique(y[test])) < 2:
+            continue
         for j in range(X.shape[1]):
-            train_auc = _auc_or_half(y[~test], X[~test, j])
-            sign = 1.0 if train_auc >= 0.5 else -1.0
+            sign = 1.0 if _auc_or_half(y[~test], X[~test, j]) >= 0.5 else -1.0
             aucs[k, j] = _auc_or_half(y[test], sign * X[test, j])
-    return aucs.mean(axis=0)
+    return np.nanmean(aucs, axis=0)
+
+
+def selected_feature_cv(X: np.ndarray, y: np.ndarray, groups: np.ndarray) -> tuple[list[float], list[int]]:
+    """Best-single-feature baseline with the feature *selected on the training runs*.
+
+    For each held-out run, the feature (and orientation) with the highest AUC on
+    the other runs is chosen and then evaluated on the held-out run. Returns the
+    per-fold AUCs and the chosen feature index of each fold.
+    """
+    fold_auc, chosen = [], []
+    for g in np.unique(groups):
+        test = groups == g
+        if len(np.unique(y[test])) < 2 or len(np.unique(y[~test])) < 2:
+            continue
+        train_auc = np.array([_auc_or_half(y[~test], X[~test, j]) for j in range(X.shape[1])])
+        j = int(np.argmax(np.abs(train_auc - 0.5)))
+        sign = 1.0 if train_auc[j] >= 0.5 else -1.0
+        fold_auc.append(_auc_or_half(y[test], sign * X[test, j]))
+        chosen.append(j)
+    return fold_auc, chosen
 
 
 def grouped_transfer(
@@ -102,16 +145,9 @@ def grouped_transfer(
     return aucs
 
 
-def run_bootstrap_ci(values: np.ndarray, n_boot: int = 2000, alpha: float = 0.05, seed: int = 0) -> tuple[float, float]:
-    """Percentile bootstrap CI for the mean of per-run values."""
-    values = np.asarray(values, dtype=float)
-    rng = np.random.default_rng(seed)
-    means = rng.choice(values, size=(n_boot, len(values)), replace=True).mean(axis=1)
-    return float(np.quantile(means, alpha / 2)), float(np.quantile(means, 1 - alpha / 2))
-
-
 def pr_auc(y: np.ndarray, scores: np.ndarray) -> float:
-    return float(average_precision_score(y, scores))
+    keep = ~np.isnan(scores)
+    return float(average_precision_score(y[keep], scores[keep]))
 
 
 def _auc_or_half(y: np.ndarray, scores: np.ndarray) -> float:
