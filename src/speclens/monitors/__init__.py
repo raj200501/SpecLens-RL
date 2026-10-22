@@ -17,7 +17,8 @@ from speclens.monitors.features import (
     channel_features,
     extract_features,
     restrict,
-    sees_label_sources,
+    sees_target_sources,
+    target_sources,
 )
 
 __all__ = [
@@ -32,8 +33,9 @@ __all__ = [
     "grouped_transfer",
     "label_status",
     "restrict",
-    "sees_label_sources",
+    "sees_target_sources",
     "selected_feature_cv",
     "single_feature_cv",
     "stratified_auc",
+    "target_sources",
 ]

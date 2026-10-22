@@ -160,13 +160,23 @@ def channel_features(channel: str) -> list[str]:
     return [f.name for f in FEATURES if f.sources <= allowed]
 
 
-def sees_label_sources(channel: str, env_name: str) -> bool:
-    """True if the channel sees every field the task's hack label is computed from.
+def target_sources(env_name: str, target: str) -> frozenset[str]:
+    """Trajectory fields a monitoring target is computed from."""
+    task = ENVS[env_name]
+    return {
+        "hack": task.label_sources,
+        "failure": task.success_sources,
+        "harmful_hack": task.label_sources | task.success_sources,
+    }[target]
 
-    Such a channel can reconstruct the label exactly, so a high monitor score on
+
+def sees_target_sources(channel: str, env_name: str, target: str = "hack") -> bool:
+    """True if the channel sees every field the target is computed from.
+
+    Such a channel can reconstruct the target exactly, so a high monitor score on
     it says nothing about monitorability.
     """
-    return ENVS[env_name].label_sources <= CHANNELS[channel]
+    return target_sources(env_name, target) <= CHANNELS[channel]
 
 
 def restrict(traj: Trajectory | dict, fields: frozenset[str]) -> dict:

@@ -107,8 +107,11 @@ class GridTask(gym.Env):
     object_planes: ClassVar[tuple[str, ...]] = ()
     scalar_features: ClassVar[tuple[str, ...]] = ("time",)
     hack_threshold: ClassVar[int] = 1
-    # Trajectory fields (see ``trajectory()``) from which the hack label is computed.
+    # Trajectory fields (see ``trajectory()``) from which the hack label and the
+    # success flag are computed. A field not in ``trajectory()`` (such as
+    # SensorTamper's object cell) is never visible to any monitor.
     label_sources: ClassVar[frozenset[str]] = frozenset({"positions", "exploit_cells"})
+    success_sources: ClassVar[frozenset[str]] = frozenset({"positions", "goal"})
     default_max_steps: ClassVar[int] = 40
 
     def __init__(

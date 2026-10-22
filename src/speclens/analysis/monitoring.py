@@ -37,7 +37,7 @@ from speclens.monitors.evaluate import (
     single_feature_cv,
     stratified_auc,
 )
-from speclens.monitors.features import CHANNELS, channel_features, sees_label_sources
+from speclens.monitors.features import CHANNELS, channel_features, sees_target_sources
 
 TARGETS = {
     "hack": lambda d: d["hack"].astype(int).to_numpy(),
@@ -47,15 +47,31 @@ TARGETS = {
 RESULT_COLUMNS = [
     "env", "target", "channel", "model", "n_episodes", "n_runs", "positive_rate", "label_status",
     "admissible", "auc", "auc_lo", "auc_hi", "n_folds", "auc_min_fold", "within_snapshot_auc", "pr_auc",
-    "ood_auc", "late_auc", "identity_auc", "selected_feature", "selected_feature_auc", "trivial",
+    "ood_auc", "late_auc", "identity_auc", "identity_auc_lo", "identity_auc_hi", "selected_feature",
+    "selected_feature_auc", "selected_feature_auc_lo", "selected_feature_auc_hi", "trivial",
+    "gain_over_identity", "gain_over_identity_lo", "gain_over_identity_hi",
+    "gain_over_feature", "gain_over_feature_lo", "gain_over_feature_hi",
 ]  # fmt: skip
 
 
 def policy_identity(data: pd.DataFrame) -> np.ndarray:
-    """Which method and which snapshot produced each episode -- and nothing else."""
-    is_proxy = (data["method"] == "proxy").to_numpy(dtype=float)
-    snapshot = data["checkpoint"].to_numpy(dtype=float)
-    return np.column_stack([is_proxy, snapshot, is_proxy * snapshot])
+    """One-hot (method, snapshot): which kind of policy produced each episode, and nothing else.
+
+    A model on these columns can learn a separate hack rate for every method and
+    training stage, which is everything a monitor could learn from policy
+    identity alone (short of telling individual seeds apart).
+    """
+    cells = data["method"] + "/" + data["checkpoint"].astype(str)
+    return pd.get_dummies(cells).to_numpy(dtype=float)
+
+
+def _paired_gain(name: str, monitor_auc: list[float], baseline_auc: list[float]) -> dict[str, float]:
+    """Mean per-fold AUC difference with a t interval; folds are the same held-out runs for both."""
+    if len(monitor_auc) != len(baseline_auc) or not monitor_auc:
+        return {name: np.nan, f"{name}_lo": np.nan, f"{name}_hi": np.nan}
+    diff = np.asarray(monitor_auc) - np.asarray(baseline_auc)
+    lo, hi = mean_ci(diff)
+    return {name: float(diff.mean()), f"{name}_lo": lo, f"{name}_hi": hi}
 
 
 def analyze(dataset: pd.DataFrame, models: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -87,7 +103,7 @@ def analyze(dataset: pd.DataFrame, models: list[str]) -> tuple[pd.DataFrame, pd.
                     "n_runs": len(np.unique(groups)),
                     "positive_rate": float(y.mean()),
                     "label_status": status,
-                    "admissible": status == "ok" and not sees_label_sources(channel, env),
+                    "admissible": status == "ok" and not sees_target_sources(channel, env, target),
                 }
                 if status != "ok":
                     rows.append(row)
@@ -122,9 +138,15 @@ def analyze(dataset: pd.DataFrame, models: list[str]) -> tuple[pd.DataFrame, pd.
                             "ood_auc": float(np.mean(to_ood)) if to_ood else np.nan,
                             "late_auc": float(np.mean(to_late)) if to_late else np.nan,
                             "identity_auc": identity.mean_auc,
+                            "identity_auc_lo": mean_ci(identity.fold_auc, bounds=(0.0, 1.0))[0],
+                            "identity_auc_hi": mean_ci(identity.fold_auc, bounds=(0.0, 1.0))[1],
                             "selected_feature": cols[Counter(chosen).most_common(1)[0][0]] if chosen else "",
                             "selected_feature_auc": float(np.mean(selected_auc)) if selected_auc else np.nan,
+                            "selected_feature_auc_lo": mean_ci(selected_auc, bounds=(0.0, 1.0))[0],
+                            "selected_feature_auc_hi": mean_ci(selected_auc, bounds=(0.0, 1.0))[1],
                             "trivial": bool(selected_auc) and float(np.mean(selected_auc)) >= TRIVIAL_AUC,
+                            **_paired_gain("gain_over_identity", cv.fold_auc, identity.fold_auc),
+                            **_paired_gain("gain_over_feature", cv.fold_auc, selected_auc),
                         }
                     )
     return pd.DataFrame(rows, columns=RESULT_COLUMNS), pd.DataFrame(feature_rows)

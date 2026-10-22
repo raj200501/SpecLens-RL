@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -153,6 +154,9 @@ def _result_numbers(cfg, main_summary, dom, sweep_summary, monitor_results, runs
         yield f"{key}-within", _num(r.within_snapshot_auc)
         yield f"{key}-identity", _num(r.identity_auc)
         yield f"{key}-single", _num(r.selected_feature_auc)
+        for gain in ("identity", "feature"):
+            yield f"{key}-gain-{gain}", _num(r[f"gain_over_{gain}"])
+            yield f"{key}-gain-{gain}-ci", f"[{_num(r[f'gain_over_{gain}_lo'])}, {_num(r[f'gain_over_{gain}_hi'])}]"
         yield f"{key}-ood", _num(r.ood_auc)
         yield f"{key}-late", _num(r.late_auc)
     for _, r in monitor_results.drop_duplicates(["env", "target"]).iterrows():
@@ -170,6 +174,15 @@ def _penalty_numbers(cfg, penalty, runs):
             yield f"pen-{r.env}-{m.replace('_', '-')}", _pct(r[m])
 
 
+def missing_macros(paper: Path, numbers: dict[str, str]) -> list[str]:
+    """``\\res{key}`` references in the paper sources that the report does not define."""
+    cited = set()
+    for tex in sorted(paper.rglob("*.tex")):
+        if "generated" not in tex.parts:
+            cited |= set(re.findall(r"\\res\{([^}]*)\}", tex.read_text(encoding="utf-8")))
+    return sorted(cited - set(numbers))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--config", default="configs/paper.yaml")
@@ -178,6 +191,8 @@ def main() -> None:
     args = parser.parse_args()
     numbers = build(load_config(args.config), Path(args.results), Path(args.paper))
     print(f"wrote figures, tables and {len(numbers)} numbers to {args.paper}/")
+    if missing := missing_macros(Path(args.paper), numbers):
+        raise SystemExit(f"paper cites undefined numbers: {', '.join(missing)}")
 
 
 if __name__ == "__main__":

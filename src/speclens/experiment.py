@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import inspect
 import json
 import os
 import platform
@@ -33,7 +34,7 @@ import torch
 import yaml
 
 from speclens import __version__
-from speclens.envs import make_env
+from speclens.envs import ENVS, make_env
 from speclens.evaluation import rollout
 from speclens.monitors.features import extract_features
 from speclens.monitors.penalty import LinearMonitor, MonitorPenalty
@@ -45,8 +46,8 @@ EVAL_SEEDS = {"id": 1_000_000, "ood": 2_000_000}
 CURVE_SEED = 3_000_000
 MONITOR_SEED = 4_000_000
 
-# Modules whose behavior determines a run's outputs; editing any of them invalidates cached runs.
-FINGERPRINT_MODULES = ("envs", "rl", "evaluation.py", "monitors/features.py", "monitors/penalty.py")
+PACKAGE_ROOT = Path(__file__).resolve().parent
+REPO_ROOT = PACKAGE_ROOT.parents[1]
 
 EPISODE_COLUMNS = ["proxy_return", "true_return", "channel_return", "exploit_events", "success", "hack", "length"]
 
@@ -121,27 +122,55 @@ def checkpoint_schedule(total_steps: int, n: int) -> list[int]:
     return [round(total_steps * (k + 1) / n) for k in range(n)]
 
 
-def code_fingerprint() -> str:
-    """Hash of the source files that determine what a run produces."""
-    root = Path(__file__).resolve().parent
+def _hash_files(paths: list[Path]) -> str:
     digest = hashlib.sha256()
-    for module in FINGERPRINT_MODULES:
-        for path in sorted((root / module).rglob("*.py")) if (root / module).is_dir() else [root / module]:
-            digest.update(path.relative_to(root).as_posix().encode())
-            digest.update(path.read_bytes())
+    for path in sorted(set(paths)):
+        digest.update(path.relative_to(PACKAGE_ROOT).as_posix().encode())
+        digest.update(path.read_bytes())
     return digest.hexdigest()[:16]
 
 
+def _code_fingerprints() -> dict[str, str]:
+    """Per-task hash of the source that determines a run's outputs, taken at import time.
+
+    Hashing when the modules are imported (rather than when a run starts) means
+    a file edited during a sweep cannot be credited to runs that executed the
+    old code. Each task's fingerprint covers the shared machinery and its own
+    environment module, so editing one task does not invalidate the others.
+    """
+    shared = [
+        PACKAGE_ROOT / "envs" / "base.py",
+        PACKAGE_ROOT / "envs" / "__init__.py",
+        PACKAGE_ROOT / "spec.py",
+        PACKAGE_ROOT / "evaluation.py",
+        PACKAGE_ROOT / "monitors" / "features.py",
+        PACKAGE_ROOT / "monitors" / "penalty.py",
+        *sorted((PACKAGE_ROOT / "rl").glob("*.py")),
+    ]
+    logic = "".join(
+        inspect.getsource(f) for f in (execute_run, _evaluate, _collect_monitor_rollouts, checkpoint_schedule)
+    )
+    logic += repr((EVAL_SEEDS, CURVE_SEED, MONITOR_SEED, EPISODE_COLUMNS))
+    return {
+        name: hashlib.sha256((_hash_files([*shared, Path(inspect.getsourcefile(cls))]) + logic).encode()).hexdigest()[
+            :16
+        ]
+        for name, cls in ENVS.items()
+    }
+
+
 def run_fingerprint(run: Run, cfg: dict, out: Path) -> str:
-    """Everything a run's outputs depend on: spec, relevant config, code and (if any) the monitor."""
+    """Everything a run's outputs depend on: spec, effective settings, code and (if any) the monitor."""
     payload = {
         "run": run.meta(),
         "collect_monitor": run.collect_monitor,
-        "ppo": cfg["ppo"],
+        "ppo": PPOConfig(**cfg["ppo"]).as_dict(),
         "checkpoints": cfg["main"]["checkpoints"],
         "evaluation": cfg["evaluation"],
-        "monitor": cfg["monitor"] if run.collect_monitor else None,
-        "code": code_fingerprint(),
+        "monitor": {k: cfg["monitor"][k] for k in ("checkpoint_stride", "episodes_per_checkpoint")}
+        if run.collect_monitor
+        else None,
+        "code": CODE_FINGERPRINTS[run.env],
     }
     if run.monitor_beta:
         payload["hack_monitor"] = monitor_path(out, run.env).read_text(encoding="utf-8")
@@ -149,10 +178,13 @@ def run_fingerprint(run: Run, cfg: dict, out: Path) -> str:
 
 
 def git_state() -> dict:
+    """Commit and cleanliness of the repository this package was imported from."""
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", "-C", str(REPO_ROOT), *args], capture_output=True, text=True, check=True).stdout
+
     try:
-        sha = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
-        status = subprocess.run(["git", "status", "--porcelain", "src"], capture_output=True, text=True, check=True)
-        return {"git_sha": sha, "git_dirty_src": bool(status.stdout.strip())}
+        return {"git_sha": git("rev-parse", "HEAD").strip(), "git_dirty_src": bool(git("status", "--porcelain", "src"))}
     except (OSError, subprocess.CalledProcessError):
         return {"git_sha": None, "git_dirty_src": None}
 
@@ -304,15 +336,44 @@ def collect(cfg: dict, out: Path, runs: list[Run] | None = None, prefix: str = "
     (out / "environment.json").write_text(json.dumps(environment, indent=2), encoding="utf-8")
 
 
+CODE_FINGERPRINTS = _code_fingerprints()
+
+
+def verify(cfg: dict, out: Path) -> list[str]:
+    """Run ids whose committed results were not produced by the current code and config."""
+    stale = []
+    for prefix, runs in (
+        ("", plan_runs(cfg)),
+        ("penalty_", plan_penalty_runs(cfg) if "monitor_penalty" in cfg else []),
+    ):
+        if not runs:
+            continue
+        recorded = pd.read_csv(out / f"{prefix}runs.csv")
+        recorded = dict(zip(recorded.apply(lambda r: _run_from_record(r).run_id, axis=1), recorded.fingerprint))
+        stale += [r.run_id for r in runs if recorded.get(r.run_id) != run_fingerprint(r, cfg, out)]
+    return stale
+
+
+def _run_from_record(record: pd.Series) -> Run:
+    beta = record.get("monitor_beta", 0.0)
+    return Run(record.env, record.method, int(record.seed), float(record.channel_scale),
+               monitor_beta=0.0 if pd.isna(beta) else float(beta))  # fmt: skip
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--config", default="configs/paper.yaml")
     parser.add_argument("--out", default="results")
     parser.add_argument("--workers", type=int, default=os.cpu_count() or 1)
     parser.add_argument("--only", choices=["main", "penalty"], help="run a single stage")
+    parser.add_argument("--verify", action="store_true", help="check that results match the current code; no training")
     args = parser.parse_args()
     cfg = load_config(args.config)
     out = Path(args.out)
+    if args.verify:
+        stale = verify(cfg, out)
+        print("\n".join(f"stale: {run_id}" for run_id in stale) or "all results match the current code and config")
+        raise SystemExit(1 if stale else 0)
     if args.only != "penalty":
         _run_all(plan_runs(cfg), cfg, out, args.workers)
         collect(cfg, out)

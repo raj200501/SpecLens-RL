@@ -71,6 +71,18 @@ def test_penalty_recalls():
     before = baseline_recall(pd.DataFrame(rows), "behavior")
     assert len(before) == 3 and (before.recall == 1.0).all()
 
+    # A run-specific signature: each seed's hacks look different, so a monitor that has
+    # not seen the seed cannot detect them, while an in-sample monitor would.
+    signature_rows = []
+    for row in rows:
+        row = dict(row)
+        row["stay_frac"] = 0.0
+        if row["hack"]:
+            row[["frac_up", "frac_down", "frac_left"][row["seed"]]] = 5.0
+        signature_rows.append(row)
+    out_of_run = baseline_recall(pd.DataFrame(signature_rows), "behavior")
+    assert (out_of_run.recall < 0.5).all()
+
     summary = summarize_penalty(episodes, pd.DataFrame(rows), "behavior").iloc[0]
     assert summary.undetected_hack == pytest.approx((1 / 3 + 1 / 3) / 2)
     assert summary.recall_before == 1.0 and summary.recall_after == pytest.approx(0.25)

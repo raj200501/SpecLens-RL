@@ -21,6 +21,7 @@ class GemTimeout(GridTask):
     object_planes = ("gem",)
     scalar_features = ("time", "deadline")
     hack_threshold = 1  # gems collected
+    success_sources = frozenset({"positions", "goal", "walls"})  # the deadline depends on the walls
     default_max_steps = 30
     gem_bonus = 0.6  # proxy reward per gem (times channel_scale)
     slack = 2  # deadline = shortest start-goal path + slack

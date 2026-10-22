@@ -21,6 +21,7 @@ from speclens.analysis.style import (
     save,
 )
 from speclens.envs import GemTimeout, ProxyFarming, SensorTamper, make_env
+from speclens.envs.base import bfs_distances
 
 CELL_COLORS = {
     "#": "#3d3d3a",
@@ -53,7 +54,8 @@ def tasks_figure(path: Path, layout_seed: int = 7) -> None:
             if env_name == "GemTimeout":
                 extra = f", deadline {int(env.layout.params['deadline'])}"
             if env_name == "SensorTamper":
-                extra = f", delay {int(env.layout.params['delay'])}"
+                console = env.layout.objects["console"][0]
+                extra = f", console {bfs_distances(env.layout.agent, env.size, env.layout.walls)[console]} away"
             ax.set_title(f"{env_name} ({split.upper()}{extra})", fontsize=8, color=INK)
         axes[1, col].text(
             0.5,

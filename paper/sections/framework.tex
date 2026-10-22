@@ -54,8 +54,9 @@ carry it to a target. The proxy pays $+1$ for every delivery confirmation the
 delivery sensor emits. Pressing \emph{interact} on a console makes the sensor
 emit a false confirmation (at most one per four steps), a minimal instance of an
 agent manipulating the process that produces its reward rather than the world
-\citep{everitt2021reward}. The OOD split delays each false confirmation by two
-steps after the press.
+\citep{everitt2021reward}. In-distribution, the console is at most five steps
+from the start; the OOD split places it seven or more steps away, so tampering
+costs more of the episode.
 
 \paragraph{\GT{} (omitted constraint).} The agent should reach a goal within a
 deadline of the shortest-path length plus two steps. The proxy pays for

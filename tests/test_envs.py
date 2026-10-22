@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from speclens.envs import ENVS, SPLITS, make_env
+from speclens.envs import ENVS, SPLITS, SensorTamper, make_env
 from speclens.envs.base import DOWN, INTERACT, MOVES, UP, bfs_distances
 
 ENV_NAMES = sorted(ENVS)
@@ -52,9 +52,13 @@ def test_gym_contract(name, split):
 def test_layouts_are_seeded_and_diverse(name):
     a, b = make_env(name), make_env(name)
     assert np.array_equal(a.reset(seed=3)[0], b.reset(seed=3)[0])
-    # Evaluation episodes must not collapse onto a handful of fixed layouts.
-    layouts = {make_env(name).reset(seed=s)[0].tobytes() for s in range(100)}
-    assert len(layouts) == 100
+    # The evaluation layouts used in the paper must not collapse onto a handful of fixed layouts.
+    from speclens.experiment import EVAL_SEEDS
+
+    for split, base in EVAL_SEEDS.items():
+        env = make_env(name, split=split)
+        layouts = {env.reset(seed=s)[0].tobytes() for s in range(base, base + 500)}
+        assert len(layouts) == 500
 
 
 @pytest.mark.parametrize("name", ENV_NAMES)
@@ -119,20 +123,20 @@ def test_sensor_tamper_counts_presses_even_when_channel_is_off():
         assert (episode["channel_return"] > 0) == (scale > 0)
 
 
-@pytest.mark.parametrize("split, delay", [("id", 0), ("ood", 2)])
-def test_sensor_tamper_false_confirmation_timing(split, delay):
-    """A press pays one false confirmation `delay` steps later; the console then needs `cooldown` steps."""
+@pytest.mark.parametrize("split", SPLITS)
+def test_sensor_tamper_false_confirmation_timing(split):
+    """A ready console pays one false confirmation per press, then needs `cooldown` steps."""
     env = make_env("SensorTamper", split=split)
     env.reset(seed=0)
     run(env, shortest_path_actions(env, env.layout.objects["console"][0]))
     single = [info["channel_reward"] for info in run(env, [INTERACT] + [UP, DOWN] * 4)]
-    assert single == [env.false_confirmation if i == delay else 0.0 for i in range(len(single))]
+    assert single == [env.false_confirmation] + [0.0] * (len(single) - 1)
 
     env.reset(seed=0)
     run(env, shortest_path_actions(env, env.layout.objects["console"][0]))
     steps = [env.step(INTERACT) for _ in range(12)]
     paid = [i for i, (*_, info) in enumerate(steps) if info["channel_reward"] > 0]
-    assert paid == [delay, delay + env.cooldown, delay + 2 * env.cooldown]
+    assert paid == [0, env.cooldown, 2 * env.cooldown]
     busy = [obs[-1] for obs, *_ in steps]  # the "console_busy" scalar
     assert busy[:4] == pytest.approx([0.75, 0.5, 0.25, 0.0])
 
@@ -175,7 +179,12 @@ def test_gem_timeout_detour_is_a_hack_and_fails_the_deadline():
 def test_ood_shift_is_what_the_spec_says():
     assert len(make_env("ProxyFarming", split="ood").sample_layout(np.random.default_rng(0)).walls) == 6
     assert len(make_env("ProxyFarming", split="id").sample_layout(np.random.default_rng(0)).walls) == 3
-    assert make_env("SensorTamper", split="ood").sample_layout(np.random.default_rng(0)).params["delay"] == 2
+    for split, (low, high) in SensorTamper.console_distance_by_split.items():
+        env = make_env("SensorTamper", split=split)
+        for seed in range(30):
+            layout = env.sample_layout(np.random.default_rng(seed))
+            distance = bfs_distances(layout.agent, env.size, layout.walls)[layout.objects["console"][0]]
+            assert low <= distance <= high
     assert len(make_env("GemTimeout", split="ood").sample_layout(np.random.default_rng(0)).objects["gem"]) == 5
 
 

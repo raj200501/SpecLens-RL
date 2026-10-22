@@ -50,6 +50,7 @@ def summarize(df: pd.DataFrame, keys: Sequence[str], metrics: Sequence[str]) -> 
     ``<metric>_hi`` and ``n_runs``.
     """
     runs = per_run_means(df, keys, metrics)
+    columns = [*keys, "n_runs", *(f"{m}{s}" for m in metrics for s in ("", "_lo", "_hi"))]
     rows = []
     for group, part in runs.groupby(list(keys), sort=True):
         row = dict(zip(keys, group if isinstance(group, tuple) else (group,)))
@@ -58,4 +59,4 @@ def summarize(df: pd.DataFrame, keys: Sequence[str], metrics: Sequence[str]) -> 
             row[m] = float(part[m].mean())
             row[f"{m}_lo"], row[f"{m}_hi"] = mean_ci(part[m].to_numpy(), bounds=metric_bounds(m))
         rows.append(row)
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=columns)

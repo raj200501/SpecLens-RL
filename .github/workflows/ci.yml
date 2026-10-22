@@ -31,9 +31,10 @@ jobs:
           ruff format --check src tests
       - name: Test
         run: pytest
-      - name: Paper numbers match committed results
+      - name: Committed results come from the current code, and the paper's numbers from them
         if: hashFiles('results/episodes.csv.gz') != ''
         run: |
+          python -m speclens.experiment --config configs/paper.yaml --out results --verify
           python -m speclens.report --config configs/paper.yaml --results results --paper paper
           git status --porcelain -- paper/generated results/numbers.json results/summary_*.csv results/monitor_*.csv
           test -z "$(git status --porcelain -- paper/generated results/numbers.json results/summary_*.csv results/monitor_*.csv)"

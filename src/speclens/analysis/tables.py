@@ -133,11 +133,12 @@ def monitor_table(results: pd.DataFrame, path: Path, model: str = "logistic", ta
     """Held-out monitor AUCs next to the baselines a monitor has to beat."""
     data = results[(results.target == target) & (results.model == model)]
     lines = [
-        "\\begin{tabular}{@{}llcccccc@{}}",
+        "\\begin{tabular}{@{}llccccccc@{}}",
         "\\toprule",
-        "& & \\multicolumn{2}{c}{Monitor AUC} & \\multicolumn{2}{c}{Baselines} & \\multicolumn{2}{c}{Transfer} \\\\",
-        "\\cmidrule(lr){3-4}\\cmidrule(lr){5-6}\\cmidrule(lr){7-8}",
-        "Task & Channel & pooled & within snapshot & policy identity & single feature & ID$\\to$OOD "
+        "& & \\multicolumn{2}{c}{Monitor AUC} & \\multicolumn{2}{c}{Baselines} & Gain over & "
+        "\\multicolumn{2}{c}{Transfer} \\\\",
+        "\\cmidrule(lr){3-4}\\cmidrule(lr){5-6}\\cmidrule(lr){8-9}",
+        "Task & Channel & pooled & within snapshot & policy identity & single feature & identity & ID$\\to$OOD "
         "& early$\\to$late \\\\",
         "\\midrule",
     ]
@@ -148,15 +149,16 @@ def monitor_table(results: pd.DataFrame, path: Path, model: str = "logistic", ta
         rate = f"{status.positive_rate:.0%}".replace("%", "\\%")
         if part.empty:
             lines.append(
-                f"{env} ({rate}) & \\multicolumn{{7}}{{l}}{{labels {status.label_status}: not evaluated}} \\\\"
+                f"{env} ({rate}) & \\multicolumn{{8}}{{l}}{{labels {status.label_status}: not evaluated}} \\\\"
             )
         for i, channel in enumerate(CHANNEL_NAMES if not part.empty else ()):
             row = part[part.channel == channel].iloc[0]
             cells = [
                 fmt_ci(row, "auc"),
                 fmt(row.within_snapshot_auc),
-                fmt(row.identity_auc) if i == 0 else "",
-                fmt(row.selected_feature_auc),
+                fmt_ci(row, "identity_auc") if i == 0 else "",
+                fmt_ci(row, "selected_feature_auc"),
+                fmt_ci(row, "gain_over_identity"),
                 fmt(row.ood_auc),
                 fmt(row.late_auc),
             ]

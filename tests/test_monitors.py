@@ -12,7 +12,7 @@ from speclens.monitors import (
     grouped_cv,
     label_status,
     restrict,
-    sees_label_sources,
+    sees_target_sources,
     selected_feature_cv,
     single_feature_cv,
     stratified_auc,
@@ -53,7 +53,11 @@ def test_channels_only_get_features_they_are_allowed_to_see():
     a, b = extract_features(TRAJ), extract_features(moved)
     assert all(a[n] == b[n] for n in channel_features("behavior"))
     for env in ("ProxyFarming", "SensorTamper", "GemTimeout"):
-        assert sees_label_sources("privileged", env) and not sees_label_sources("task", env)
+        assert sees_target_sources("privileged", env, "hack") and not sees_target_sources("task", env, "hack")
+    # Reaching the goal is visible to the task channel in ProxyFarming, but not the deadline in GemTimeout.
+    assert sees_target_sources("task", "ProxyFarming", "failure")
+    assert not sees_target_sources("task", "GemTimeout", "failure")
+    assert not sees_target_sources("privileged", "SensorTamper", "failure")  # the object cell is never exposed
 
 
 def test_provenance_is_enforced_not_just_declared():
@@ -99,19 +103,30 @@ def test_stratified_auc_ignores_between_policy_differences():
 
 
 def test_grouped_cv_does_not_leak_across_runs():
-    """A feature that only identifies the run must not look predictive when runs are held out.
+    """Run identity predicts the label across runs but not within one; held-out runs must see no signal.
 
-    Each run has a constant label rate but its own feature offset; a monitor that
-    memorized runs would score highly under row-level CV but not here.
+    Each run has its own hack rate and a feature that identifies the run. A
+    monitor trained on rows from the same run (row-level CV) would score well
+    by memorizing run identity; with whole runs held out it cannot.
     """
     rng = np.random.default_rng(0)
-    groups = np.repeat(np.arange(6), 50)
-    y = rng.integers(0, 2, size=len(groups))
-    X = (groups[:, None] + rng.normal(0, 0.01, size=(len(groups), 3))).astype(float)
-    cv = grouped_cv(X, y, groups, "logistic")
-    assert len(cv.fold_auc) == 6
-    assert abs(cv.mean_auc - 0.5) < 0.1
-    assert not np.isnan(cv.oof_scores).any()
+    groups = np.repeat(np.arange(8), 60)
+    rates = np.linspace(0.1, 0.9, 8)
+    y = (rng.random(len(groups)) < rates[groups]).astype(int)
+    X = np.column_stack([groups + rng.normal(0, 0.01, size=len(groups)), rng.normal(size=len(groups))])
+    cv = grouped_cv(X, y, groups, "boosting")
+    assert len(cv.fold_auc) == 8
+    assert abs(cv.mean_auc - 0.5) < 0.08
+    from sklearn.model_selection import KFold
+
+    leaky = np.zeros(len(y))
+    for train, test in KFold(5, shuffle=True, random_state=0).split(X):
+        from speclens.monitors.evaluate import build_model
+
+        leaky[test] = build_model("boosting").fit(X[train], y[train]).predict_proba(X[test])[:, 1]
+    from sklearn.metrics import roc_auc_score
+
+    assert roc_auc_score(y, leaky) > 0.7  # the same data does leak under row-level CV
 
 
 def test_single_feature_baselines_choose_on_training_runs():
@@ -159,6 +174,17 @@ def test_admissibility_screen_flags_the_privileged_positive_control():
     # Only proxy runs hack here, so knowing the method alone is a strong baseline.
     assert hack.loc["behavior", "identity_auc"] > 0.7
     assert set(features.channel) == set(CHANNELS)
+
+
+def test_policy_identity_baseline_learns_any_per_snapshot_rate():
+    """Hack rate that rises then falls over snapshots: a categorical baseline must still capture it."""
+    data = _synthetic_monitor_dataset()
+    rng = np.random.default_rng(5)
+    rate = {0: 0.05, 1: 0.5, 2: 0.95, 3: 0.95, 4: 0.5, 5: 0.05}
+    proxy = data.method == "proxy"
+    data.loc[proxy, "hack"] = (rng.random(proxy.sum()) < data.loc[proxy, "checkpoint"].map(rate)).astype(int)
+    results, _ = analyze(data, ["logistic"])
+    assert results[results.target == "hack"].identity_auc.iloc[0] > 0.8
 
 
 def test_analyze_survives_degenerate_labels():

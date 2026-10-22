@@ -1,10 +1,11 @@
 PYTHON ?= python
 WORKERS ?= 4
 
-.PHONY: install test lint smoke experiments report paper all
+.PHONY: install test lint smoke experiments verify report paper all
 
-install:  ## install the package with development extras
-	$(PYTHON) -m pip install -e ".[dev]"
+install:  ## exact dependency versions behind the committed results, then the package
+	$(PYTHON) -m pip install -r requirements-lock.txt --extra-index-url https://download.pytorch.org/whl/cpu
+	$(PYTHON) -m pip install --no-deps -e .
 
 test:  ## unit tests (about a minute on a laptop)
 	$(PYTHON) -m pytest
@@ -20,7 +21,10 @@ smoke:  ## the full pipeline at toy scale, into a scratch directory
 experiments:  ## every training run in the paper (a few CPU-hours; resumable)
 	$(PYTHON) -m speclens.experiment --config configs/paper.yaml --out results --workers $(WORKERS)
 
-report:  ## figures, tables and numbers from results/ (seconds)
+verify:  ## check that committed results were produced by the current code and config
+	$(PYTHON) -m speclens.experiment --config configs/paper.yaml --out results --verify
+
+report:  ## figures, tables and numbers from results/ (about a minute)
 	$(PYTHON) -m speclens.report --config configs/paper.yaml --results results --paper paper
 
 paper: report  ## compile paper/main.pdf (needs latexmk or tectonic)
