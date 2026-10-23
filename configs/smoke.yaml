@@ -3,6 +3,6 @@ envs: [ProxyFarming, SensorTamper, GemTimeout]
 main: {methods: [proxy, oracle], seeds: 2, checkpoints: 4}
 ppo: {total_steps: 4096, n_envs: 4, rollout_steps: 128, minibatch_size: 256, hidden: 32, channels: 4}
 evaluation: {episodes: 20, curve_episodes: 10}
-sweep: {channel_scales: [0.0, 1.0], seeds: 2}
+sweep: {channel_scales: [0.0, 1.0], seeds: 2, optimal_layouts: 2}
 monitor: {checkpoint_stride: 1, episodes_per_checkpoint: 10, models: [logistic]}
 monitor_penalty: {channel: behavior, beta: 10.0, seeds: 1, seed_offset: 100}

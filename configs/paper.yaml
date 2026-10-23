@@ -30,6 +30,7 @@ evaluation:
 sweep:                       # dose-response: proxy agents trained with a scaled corruption channel
   channel_scales: [0.0, 0.25, 0.5, 1.0, 2.0]
   seeds: 5
+  optimal_layouts: 100       # ID layouts on which the exact proxy-optimal policy is computed (no training)
 
 monitor:
   checkpoint_stride: 2       # use every 2nd snapshot of each proxy run

@@ -1,0 +1,77 @@
+\section{Results}
+\label{sec:results}
+
+% Narrative paragraphs are written against the generated numbers once the sweep completes.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/training_curves.pdf}
+\caption{Training dynamics over \res{seeds} seeds (mean and 95\% $t$ interval
+over runs, evaluated on \res{curve-episodes} fixed ID layouts per snapshot).}
+\label{fig:curves}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Final policies on \res{eval-episodes} fresh layouts per split; mean
+over \res{seeds} runs with 95\% $t$ intervals.}
+\label{tab:main}
+\small
+\resizebox{\linewidth}{!}{\input{generated/table_main}}
+\end{table}
+
+\subsection{Training dynamics}
+\label{sec:dynamics}
+
+\subsection{Dose--response}
+\label{sec:dose}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/dose_response.pdf}
+\caption{Final ID hack and success rates of Proxy PPO as the corruption
+channel is scaled ($\lambda=1$ is the default; \res{sweep-seeds} seeds per
+value). The dashed line is Oracle PPO's success rate.}
+\label{fig:dose}
+\end{figure}
+
+\subsection{Monitorability}
+\label{sec:monitors}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/monitors.pdf}
+\caption{Held-out hack-monitor AUC (logistic regression, leave-one-seed-out)
+for each channel, with the within-snapshot AUC, the best single feature
+(selected on training folds) and the policy-identity baseline.}
+\label{fig:monitors}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Hack monitors (logistic regression). $^\dagger$The privileged channel
+sees every field the label is computed from and is a positive control.}
+\label{tab:monitors}
+\small
+\resizebox{\linewidth}{!}{\input{generated/table_monitors}}
+\end{table}
+
+\subsection{Training against the monitor}
+\label{sec:penalty}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/monitor_penalty.pdf}
+\caption{Proxy PPO trained with a penalty of $\beta=\res{pen-beta}$ times the
+behavior monitor's hack probability (\res{pen-seeds} seeds).}
+\label{fig:penalty}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Agents trained against the behavior monitor, compared with the
+monitor's out-of-run recall on unpenalized final policies.}
+\label{tab:penalty}
+\small
+\resizebox{\linewidth}{!}{\input{generated/table_penalty}}
+\end{table}

@@ -126,8 +126,8 @@ def curves_figure(curves: pd.DataFrame, path: Path) -> None:
     save(fig, path)
 
 
-def dose_response_figure(episodes: pd.DataFrame, sweep_seeds: int, path: Path) -> None:
-    """Final hack and success rates as the corruption channel is scaled."""
+def dose_response_figure(episodes: pd.DataFrame, optimal: pd.DataFrame, sweep_seeds: int, path: Path) -> None:
+    """Final hack and success rates as the corruption channel is scaled, next to the exact proxy optimum."""
     apply_style()
     proxy = episodes[(episodes.method == "proxy") & (episodes.split == "id") & (episodes.seed < sweep_seeds)]
     oracle = episodes[(episodes.method == "oracle") & (episodes.split == "id")]
@@ -153,6 +153,17 @@ def dose_response_figure(episodes: pd.DataFrame, sweep_seeds: int, path: Path) -
             ax.fill_between(
                 part.channel_scale, part[f"{metric}_lo"], part[f"{metric}_hi"], color=color, alpha=0.15, linewidth=0
             )
+            best = optimal[optimal.env == env].sort_values("channel_scale")
+            ax.plot(
+                best.channel_scale,
+                best[metric],
+                color=INK,
+                linewidth=1.0,
+                linestyle=(0, (1, 1.5)),
+                marker="s",
+                markersize=2.5,
+                label="Proxy-optimal policy",
+            )
             if metric == "success":
                 ax.axhline(
                     oracle_success[env], color=INK_SECONDARY, linewidth=1.0, linestyle=(0, (4, 3)), label="Oracle PPO"
@@ -165,7 +176,7 @@ def dose_response_figure(episodes: pd.DataFrame, sweep_seeds: int, path: Path) -
             if row == 1:
                 ax.set_xlabel("Corruption-channel scale")
     handles, labels = axes[1, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.03))
+    fig.legend(handles, labels, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.03))
     fig.tight_layout(rect=(0, 0, 1, 0.96))
     save(fig, path)
 

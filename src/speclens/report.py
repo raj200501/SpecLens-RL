@@ -20,9 +20,10 @@ import pandas as pd
 
 from speclens.analysis import figures, tables
 from speclens.analysis.monitoring import analyze
+from speclens.analysis.optimal import optimal_behavior
 from speclens.analysis.penalty import summarize_penalty
 from speclens.analysis.stats import summarize
-from speclens.experiment import load_config
+from speclens.experiment import EVAL_SEEDS, load_config
 from speclens.monitors.features import CHANNELS, channel_features
 from speclens.rl import PPOConfig
 
@@ -43,6 +44,21 @@ def dominance(episodes: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def emergence(curves: pd.DataFrame, threshold: float = 0.5) -> pd.DataFrame:
+    """Per run: when the snapshot hack rate first reaches ``threshold``, and the best success before that."""
+    rows = []
+    for (env, seed), run in curves.groupby(["env", "seed"]):
+        run = run.sort_values("env_steps")
+        crossed = run[run.hack >= threshold]
+        onset = crossed.env_steps.iloc[0] if len(crossed) else float("nan")
+        before = run[run.env_steps < onset] if len(crossed) else run
+        rows.append(
+            {"env": env, "seed": seed, "onset": onset, "peak_success_before": before.success.max(),
+             "final_hack": run.hack.iloc[-1], "final_success": run.success.iloc[-1]}
+        )  # fmt: skip
+    return pd.DataFrame(rows)
+
+
 def build(cfg: dict, results: Path, paper: Path) -> dict[str, str]:
     episodes = pd.read_csv(results / "episodes.csv.gz")
     curves = pd.read_csv(results / "curves.csv")
@@ -57,10 +73,17 @@ def build(cfg: dict, results: Path, paper: Path) -> dict[str, str]:
     main_summary.to_csv(results / "summary_main.csv", index=False, float_format="%.4f")
     dom = dominance(main)
     dom.to_csv(results / "summary_dominance.csv", index=False, float_format="%.4f")
+    main_curves = curves[(curves.method == "proxy") & (curves.channel_scale == 1.0)]
+    onsets = emergence(main_curves[main_curves.seed < cfg["main"]["seeds"]])
+    onsets.to_csv(results / "summary_emergence.csv", index=False, float_format="%.4f")
 
     sweep = episodes[(episodes.method == "proxy") & (episodes.seed < cfg["sweep"]["seeds"])]
     sweep_summary = summarize(sweep, ["env", "channel_scale", "split"], MAIN_METRICS)
     sweep_summary.to_csv(results / "summary_sweep.csv", index=False, float_format="%.4f")
+    seeds = range(EVAL_SEEDS["id"], EVAL_SEEDS["id"] + cfg["sweep"]["optimal_layouts"])
+    optimal = optimal_behavior(cfg["envs"], cfg["sweep"]["channel_scales"], PPOConfig(**cfg["ppo"]).gamma, seeds)
+    optimal_summary = optimal.groupby(["env", "channel_scale"], as_index=False)[MAIN_METRICS].mean()
+    optimal_summary.to_csv(results / "summary_optimal.csv", index=False, float_format="%.4f")
 
     monitor_results, monitor_features = analyze(monitor_data, cfg["monitor"]["models"])
     monitor_results.to_csv(results / "monitor_results.csv", index=False, float_format="%.4f")
@@ -68,7 +91,7 @@ def build(cfg: dict, results: Path, paper: Path) -> dict[str, str]:
 
     figures.tasks_figure(fig_dir / "tasks")
     figures.curves_figure(curves, fig_dir / "training_curves")
-    figures.dose_response_figure(episodes, cfg["sweep"]["seeds"], fig_dir / "dose_response")
+    figures.dose_response_figure(episodes, optimal_summary, cfg["sweep"]["seeds"], fig_dir / "dose_response")
     figures.monitor_figure(monitor_results, fig_dir / "monitors")
 
     tables.task_table(gen_dir / "table_tasks.tex")
@@ -83,6 +106,8 @@ def build(cfg: dict, results: Path, paper: Path) -> dict[str, str]:
 
     numbers = dict(_config_numbers(cfg))
     numbers.update(_result_numbers(cfg, main_summary, dom, sweep_summary, monitor_results, runs, monitor_data))
+    numbers.update(_emergence_numbers(onsets, main_curves))
+    numbers.update(_optimal_numbers(optimal_summary))
     if (results / "penalty_episodes.csv.gz").exists():
         penalty_episodes = pd.read_csv(results / "penalty_episodes.csv.gz")
         penalty = summarize_penalty(penalty_episodes, monitor_data, cfg["monitor_penalty"]["channel"])
@@ -123,6 +148,7 @@ def _config_numbers(cfg: dict) -> Iterator[tuple[str, str]]:
     yield "curve-episodes", str(cfg["evaluation"]["curve_episodes"])
     yield "sweep-seeds", str(cfg["sweep"]["seeds"])
     yield "sweep-scales", ", ".join(f"{s:g}" for s in cfg["sweep"]["channel_scales"])
+    yield "optimal-layouts", str(cfg["sweep"]["optimal_layouts"])
     yield "monitor-snapshots", str(cfg["main"]["checkpoints"] // cfg["monitor"]["checkpoint_stride"])
     yield "monitor-layouts", str(cfg["monitor"]["episodes_per_checkpoint"])
     for channel in CHANNELS:
@@ -161,6 +187,31 @@ def _result_numbers(cfg, main_summary, dom, sweep_summary, monitor_results, runs
         yield f"{key}-late", _num(r.late_auc)
     for _, r in monitor_results.drop_duplicates(["env", "target"]).iterrows():
         yield f"mon-{r.env}-{r.target}-rate", _pct(r.positive_rate)
+
+
+def _steps(value: float) -> str:
+    if pd.isna(value):
+        return "--"
+    return f"{value / 1e6:.2f}M" if value >= 1e6 else f"{value / 1e3:.0f}k"
+
+
+def _emergence_numbers(onsets, curves):
+    yield "first-snapshot", _steps(curves.env_steps.min())
+    for env, part in onsets.groupby("env"):
+        switched = part.dropna(subset=["onset"])
+        yield f"dyn-{env}-runs", str(len(part))
+        yield f"dyn-{env}-switched", str(len(switched))
+        yield f"dyn-{env}-onset-median", _steps(switched.onset.median())
+        yield f"dyn-{env}-onset-min", _steps(switched.onset.min())
+        yield f"dyn-{env}-onset-max", _steps(switched.onset.max())
+        yield f"dyn-{env}-peak-success-before", _pct(part.peak_success_before.mean())
+        yield f"dyn-{env}-peak-success-before-min", _pct(part.peak_success_before.min())
+
+
+def _optimal_numbers(summary):
+    for _, r in summary.iterrows():
+        yield f"opt-{r.env}-{r.channel_scale:g}-hack", _pct(r.hack)
+        yield f"opt-{r.env}-{r.channel_scale:g}-success", _pct(r.success)
 
 
 def _penalty_numbers(cfg, penalty, runs):

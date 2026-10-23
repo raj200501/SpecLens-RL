@@ -72,6 +72,7 @@ def hyperparameter_table(cfg: dict, path: Path) -> None:
         ("evaluation layouts per split", cfg["evaluation"]["episodes"]),
         ("layouts per snapshot (training curves)", cfg["evaluation"]["curve_episodes"]),
         ("channel scales (sweep)", ", ".join(f"{s:g}" for s in cfg["sweep"]["channel_scales"])),
+        ("layouts for the exact proxy-optimal policy", cfg["sweep"]["optimal_layouts"]),
         ("monitor episodes per snapshot and split", cfg["monitor"]["episodes_per_checkpoint"]),
     ]
     lines = ["\\begin{tabular}{@{}ll@{}}", "\\toprule", "Setting & Value \\\\", "\\midrule"]

@@ -5,7 +5,7 @@ import pytest
 from speclens.analysis.penalty import baseline_recall, penalized_recall, summarize_penalty
 from speclens.analysis.stats import mean_ci, summarize
 from speclens.monitors.features import FEATURES
-from speclens.report import dominance
+from speclens.report import dominance, emergence
 
 
 def test_mean_ci_is_a_t_interval_with_valid_coverage():
@@ -36,6 +36,21 @@ def test_dominance_margin():
     ]
     margin = dominance(pd.DataFrame(rows)).iloc[0]["margin"]
     assert margin == pytest.approx(0.2)
+
+
+def test_emergence_onset_and_success_before():
+    curves = pd.DataFrame(
+        {
+            "env": "E",
+            "seed": [0] * 4 + [1] * 4,
+            "env_steps": [1, 2, 3, 4] * 2,
+            "hack": [0.0, 0.2, 0.6, 0.9, 0.1, 0.1, 0.2, 0.4],
+            "success": [0.5, 0.9, 0.3, 0.1, 0.2, 0.8, 0.7, 0.6],
+        }
+    )
+    runs = emergence(curves).set_index("seed")
+    assert runs.loc[0, "onset"] == 3 and runs.loc[0, "peak_success_before"] == pytest.approx(0.9)
+    assert np.isnan(runs.loc[1, "onset"]) and runs.loc[1, "peak_success_before"] == pytest.approx(0.8)
 
 
 def test_penalty_recalls():
