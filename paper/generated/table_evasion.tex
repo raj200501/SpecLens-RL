@@ -1,0 +1,15 @@
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+& & \multicolumn{2}{c}{Mean over hacking episodes} & SD in monitor & Share of the \\
+\cmidrule(lr){3-4}
+Task & Behavior feature & unpenalized & penalized & training data & change in logit \\
+\midrule
+SensorTamper (15 hacks, 1 run) & repeated actions & 0.91 & 0.32 & 0.294 & 65\% \\
+ & action entropy & 0.23 & 0.77 & 0.268 & -65\% \\
+ & longest stay / length & 0.89 & 0.25 & 0.408 & 26\% \\
+\midrule
+GemTimeout (66 hacks, 5 runs) & fraction of interact actions & 0.00 & 0.50 & 0.013 & 91\% \\
+ & distinct cells visited & 0.84 & 0.41 & 0.266 & 44\% \\
+ & episode length / step limit & 0.62 & 0.94 & 0.320 & -20\% \\
+\bottomrule
+\end{tabular}

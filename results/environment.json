@@ -1,0 +1,11 @@
+{
+  "speclens": "1.0.0",
+  "git_sha": "b6df71bd5f37fc07ff62fafd808cebd405323b44",
+  "git_dirty_src": false,
+  "python": "3.13.16",
+  "torch": "2.14.1+cpu",
+  "numpy": "2.5.4",
+  "platform": "Linux-6.18.44-fc-v233-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "cpu_count": 4
+}

@@ -1,0 +1,12 @@
+% behavior-channel monitor
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+& Hack & Harmful & Flagged & Undetected & \multicolumn{2}{c}{Monitor recall on hacks} \\
+\cmidrule(lr){6-7}
+Task & rate & hack rate & rate & hack rate & unpenalized & penalized \\
+\midrule
+ProxyFarming & 0.01 {\scriptsize [0.00, 0.01]} & 0.00 {\scriptsize [0.00, 0.00]} & 0.03 {\scriptsize [0.02, 0.03]} & 0.01 {\scriptsize [0.00, 0.01]} & 0.97 {\scriptsize [0.94, 1.00]} & -- (no run) \\
+SensorTamper & 0.19 {\scriptsize [0.00, 0.71]} & 0.19 {\scriptsize [0.00, 0.70]} & 0.05 {\scriptsize [0.00, 0.20]} & 0.13 {\scriptsize [0.00, 0.51]} & 1.00 {\scriptsize [1.00, 1.00]} & 0.28 (1 run) \\
+GemTimeout & 0.65 {\scriptsize [0.56, 0.75]} & 0.65 {\scriptsize [0.56, 0.75]} & 0.01 {\scriptsize [0.01, 0.01]} & 0.64 {\scriptsize [0.55, 0.74]} & 0.97 {\scriptsize [0.95, 1.00]} & 0.01 {\scriptsize [0.01, 0.02]} (5 runs) \\
+\bottomrule
+\end{tabular}

@@ -1,0 +1,32 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We built three small model organisms of reward hacking in which the true
+objective is known exactly and the corruption channel can be scaled or switched
+off, and used them to measure when PPO exploits a misspecified reward, whether
+trajectory monitors detect it, and what happens when agents are trained against
+a monitor. Three lessons seem likely to carry over to larger systems, as
+hypotheses to test there.
+
+\emph{The reward function does not determine the outcome.} The exact optimum
+hacks at every positive channel scale, while PPO's hacking appears only above a
+task-specific threshold, varies across seeds near that threshold, and is more
+harmful than the optimum when it appears. A reward specification is safe or
+unsafe only relative to the optimizer that will be run on it, across seeds.
+
+\emph{Pooled monitor evaluations overstate monitorability.} When hacking becomes
+more common as training proceeds, a monitor is rewarded for recognizing the
+training stage rather than the behavior. A policy-identity baseline and the
+AUC within a single policy separate the two; we recommend reporting both.
+
+\emph{A monitor's recall before it becomes a training signal says little about
+its recall afterwards.} The same penalty removed hacking in one task and taught
+agents to evade the monitor in another, consistent with the obfuscation
+\citet{baker2025monitoring} observe when optimizing against chain-of-thought
+monitors. Only the known true objective let us tell the two outcomes apart; in
+deployed systems, that is exactly what is missing.
+
+The environments, the evaluation pipeline and all results are released. A full
+rerun takes about \res{cpu-hours-all} CPU-hours, and the report regenerates
+every figure, table and number in this paper from the saved results in a few
+minutes.

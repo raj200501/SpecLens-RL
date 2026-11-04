@@ -1,0 +1,20 @@
+\begin{tabular}{@{}lllccccc@{}}
+\toprule
+Task & Metric & Policy & $\lambda=0$ & $\lambda=0.25$ & $\lambda=0.5$ & $\lambda=1$ & $\lambda=2$ \\
+\midrule
+ProxyFarming & hack rate & Proxy PPO & 0.00 & 0.00 & 0.01 & 0.89 & 0.88 \\
+ &  & proxy-optimal & 0.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
+ & success & Proxy PPO & 0.98 & 0.98 & 0.98 & 0.07 & 0.04 \\
+ &  & proxy-optimal & 1.00 & 1.00 & 0.95 & 0.48 & 0.20 \\
+\midrule
+SensorTamper & hack rate & Proxy PPO & 0.00 & 0.99 & 0.99 & 0.99 & 0.90 \\
+ &  & proxy-optimal & 0.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
+ & success & Proxy PPO & 0.98 & 0.00 & 0.00 & 0.00 & 0.01 \\
+ &  & proxy-optimal & 1.00 & 0.94 & 0.46 & 0.14 & 0.05 \\
+\midrule
+GemTimeout & hack rate & Proxy PPO & 0.00 & 0.00 & 0.56 & 0.93 & 0.96 \\
+ &  & proxy-optimal & 0.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
+ & success & Proxy PPO & 0.95 & 0.95 & 0.39 & 0.06 & 0.03 \\
+ &  & proxy-optimal & 1.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+\bottomrule
+\end{tabular}

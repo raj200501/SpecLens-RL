@@ -1,0 +1,24 @@
+\begin{abstract}
+Reward hacking is now observed in frontier reinforcement-learning runs, but it
+is hard to study there: the true objective is rarely known exactly, and the
+misspecification cannot be switched off. We present \framework{}, three
+procedurally generated gridworld tasks in which the proxy reward differs from a
+known true objective through one explicit, scalable corruption channel:
+farmable reward shaping, tampering with a reward sensor, and an omitted
+deadline. Across \res{n-runs-all} PPO runs, hacking emerges in three different
+ways, from the late abandonment of a mastered task to an exploit learned
+before the task. Solving every layout exactly shows that hacking is
+proxy-optimal at a quarter of the default channel strength in all three tasks,
+yet PPO learns it there in only one; where PPO does hack, its hacks are more
+harmful than the reward requires. Monitors that see only positions and actions
+reach held-out AUCs of \res{mon-behavior-auc-min}--\res{mon-behavior-auc-max},
+but a baseline that knows only which policy produced an episode reaches
+\res{mon-behavior-identity-min}--\res{mon-behavior-identity-max}, and among the
+episodes of a single policy the monitors' AUC is
+\res{mon-behavior-within-min}--\res{mon-behavior-within-max}. Training agents
+against such a monitor removes hacking in one task and hides it in another:
+there, agents still hack in \res{pen-GemTimeout-hack}\% of episodes while the
+monitor's recall on hacks falls from \res{pen-GemTimeout-recall-before}\% to
+\res{pen-GemTimeout-recall-after}\%. Every number in this paper is regenerated
+from saved results by one command and checked in continuous integration.
+\end{abstract}

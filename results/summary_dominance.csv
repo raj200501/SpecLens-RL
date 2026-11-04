@@ -1,0 +1,7 @@
+env,split,best_proxy,worst_oracle,margin
+GemTimeout,id,-0.0946,0.8308,0.9254
+GemTimeout,ood,-0.1497,0.8326,0.9823
+ProxyFarming,id,0.1930,0.8927,0.6996
+ProxyFarming,ood,0.1856,0.7908,0.6052
+SensorTamper,id,-0.3892,0.8416,1.2308
+SensorTamper,ood,-0.3812,0.8191,1.2003

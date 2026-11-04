@@ -1,0 +1,16 @@
+env,method,seed,channel_scale,monitor_beta,fingerprint,train_sec,total_sec,git_sha,git_dirty_src
+ProxyFarming,proxy,100,1,10,55827447c428c660,398,403.3,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+ProxyFarming,proxy,101,1,10,e9ab9eae01400e3b,389.7,395.1,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+ProxyFarming,proxy,102,1,10,3cc9e5f77cdb7286,378.2,383.6,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+ProxyFarming,proxy,103,1,10,7b9fa681102752dc,392.5,397.9,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+ProxyFarming,proxy,104,1,10,7d378f039cbba860,398,401.9,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+SensorTamper,proxy,100,1,10,a8b6885351e48edf,404.8,409.7,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+SensorTamper,proxy,101,1,10,44f4add33348b097,397.2,401.7,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+SensorTamper,proxy,102,1,10,31a827960bb68b9d,411.5,415.9,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+SensorTamper,proxy,103,1,10,916fc7f6c6fc4bbd,412,416.8,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+SensorTamper,proxy,104,1,10,600a3cb03a50419c,380.8,386.8,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+GemTimeout,proxy,100,1,10,f78b0550795c844b,386.3,390.5,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+GemTimeout,proxy,101,1,10,cb96779ec9e95a33,395.4,399.9,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+GemTimeout,proxy,102,1,10,4737d0d295fb217c,394.2,398.6,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+GemTimeout,proxy,103,1,10,2ae53da551a83e54,384.4,389.3,b6df71bd5f37fc07ff62fafd808cebd405323b44,False
+GemTimeout,proxy,104,1,10,10d35d35e11b57d3,388.5,393,b6df71bd5f37fc07ff62fafd808cebd405323b44,False

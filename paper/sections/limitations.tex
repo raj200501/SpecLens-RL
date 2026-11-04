@@ -28,6 +28,12 @@ not harm; we therefore also report harmful hacks (channel use without task
 success), and the label thresholds are task-specific.
 
 \paragraph{Training against a monitor.} Our monitor-penalty experiment uses one
-penalty weight, one monitor channel and a fixed monitor. A monitor that is
-retrained as the agent changes, or a penalty that is annealed, may behave
-differently.
+penalty weight, one monitor channel, a fixed linear monitor and five seeds per
+task. A monitor that is retrained as the agent changes, a nonlinear monitor, or
+a penalty that is annealed may behave differently, and with five seeds the
+fraction of runs that evade is only coarsely estimated.
+
+\paragraph{The proxy optimum.} The exact optimum is computed for PPO's discount
+factor on a sample of layouts. It describes what the reward asks for, not what
+any particular learner can represent or find; that gap is the point of the
+comparison.

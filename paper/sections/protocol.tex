@@ -28,7 +28,9 @@ noticeably less than their nominal 95\%, which is why we do not use them.
 \res{curve-episodes} fixed ID layouts to trace proxy return, true return and
 hack rate over training. For the dose--response experiment we retrain Proxy PPO
 with channel scale $\lambda\in\{\res{sweep-scales}\}$ (times the default
-bonus), with \res{sweep-seeds} seeds per value.
+bonus), with \res{sweep-seeds} seeds per value. As a reference that does not
+depend on the optimizer, we also compute the exact proxy-optimal policy of
+\res{optimal-layouts} ID layouts at each scale (Appendix~\ref{app:optimal}).
 
 \paragraph{Monitors.} A monitor sees one finished trajectory and outputs a hack
 score. Because hacking emerges during training, each task's monitor dataset
@@ -76,8 +78,13 @@ held-out AUC of 0.98. The privileged channel must be inadmissible and should be
 trivial; it is the positive control for the screen.
 
 \paragraph{Training against a monitor.} Finally we fit a logistic behavior
-monitor on all main-experiment episodes of a task and train \res{pen-seeds}
+monitor on all main-experiment ID episodes of a task and train \res{pen-seeds}
 fresh Proxy PPO agents (new seeds) whose reward at the end of each episode is
-reduced by $\beta=\res{pen-beta}$ times the monitor's hack probability. We
-compare the monitor's recall on hacking episodes of these agents with its
-out-of-run recall on the unpenalized final policies.
+reduced by $\beta=\res{pen-beta}$ times the monitor's hack probability. A
+monitor flags an episode when that probability is at least 0.5. We compare the
+monitor's recall on hacking episodes of these agents with its out-of-run recall
+on the unpenalized final policies (each held-out seed scored by a monitor
+fitted on the other seeds). Because the monitor is linear in standardized
+features, the change in its mean logit between the final hacking episodes of
+unpenalized and penalized agents is exactly a sum of per-feature terms, which
+shows how the penalized agents' hacks moved relative to the monitor.

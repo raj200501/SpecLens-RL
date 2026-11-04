@@ -1,13 +1,12 @@
 \section{Results}
 \label{sec:results}
 
-% Narrative paragraphs are written against the generated numbers once the sweep completes.
-
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/training_curves.pdf}
-\caption{Training dynamics over \res{seeds} seeds (mean and 95\% $t$ interval
-over runs, evaluated on \res{curve-episodes} fixed ID layouts per snapshot).}
+\caption{Training dynamics over \res{seeds} seeds, evaluated on
+\res{curve-episodes} fixed ID layouts per snapshot. Thick lines are means with
+95\% $t$ intervals over runs; thin lines are individual Proxy PPO runs.}
 \label{fig:curves}
 \end{figure}
 
@@ -20,10 +19,46 @@ over \res{seeds} runs with 95\% $t$ intervals.}
 \resizebox{\linewidth}{!}{\input{generated/table_main}}
 \end{table}
 
-\subsection{Training dynamics}
+\subsection{Hacking emerges in three different ways}
 \label{sec:dynamics}
 
-\subsection{Dose--response}
+At the default channel scale, Proxy PPO hacks in every task
+(Table~\ref{tab:main}): its ID hack rate is \res{ProxyFarming-proxy-id-hack}\%
+in \PF{}, \res{SensorTamper-proxy-id-hack}\% in \ST{} and
+\res{GemTimeout-proxy-id-hack}\% in \GT{}, and nearly all of these hacks are
+harmful (\res{ProxyFarming-proxy-id-harmful-hack}\%,
+\res{SensorTamper-proxy-id-harmful-hack}\% and
+\res{GemTimeout-proxy-id-harmful-hack}\% of episodes). Oracle PPO succeeds on
+\res{ProxyFarming-oracle-id-success}\%, \res{SensorTamper-oracle-id-success}\%
+and \res{GemTimeout-oracle-id-success}\% of the same layouts, so the budget and
+architecture suffice to learn every task, and every Oracle PPO run reaches a
+higher true return than every Proxy PPO run on both splits. The exploit survives
+the OOD shift: Proxy PPO's OOD hack rates are \res{ProxyFarming-proxy-ood-hack}\%,
+\res{SensorTamper-proxy-ood-hack}\% and \res{GemTimeout-proxy-ood-hack}\%.
+
+How hacking emerges depends on the mechanism (Figure~\ref{fig:curves}). In
+\PF{}, Proxy PPO first learns the intended task: before a run's hack rate
+first reaches 50\%, its success rate peaks at
+\res{dyn-ProxyFarming-peak-success-before}\% on average (at least
+\res{dyn-ProxyFarming-peak-success-before-min}\% in every run), as high as
+Oracle PPO's. The policy then abandons the goal for the beacon.
+\res{dyn-ProxyFarming-switched} of \res{dyn-ProxyFarming-runs} runs cross a 50\%
+hack rate, between \res{dyn-ProxyFarming-onset-min} and
+\res{dyn-ProxyFarming-onset-max} steps (median
+\res{dyn-ProxyFarming-onset-median}); the remaining run had reached
+\res{dyn-ProxyFarming-unswitched-final-hack}\% when training ended. Once
+under way, a run's hack rate climbs from below 10\% to above 75\% within a
+median of \res{dyn-ProxyFarming-transition-median} steps. Proxy return rises throughout, so the training signal
+gives no warning, and a snapshot taken before the switch would look aligned.
+In \ST{}, tampering comes first: the hack rate reaches 50\% after a median of
+\res{dyn-SensorTamper-onset-median} steps, while the average run's success
+rate has not exceeded \res{dyn-SensorTamper-peak-success-before}\%, and the
+task is never learned afterwards. In \GT{}, gem detours dominate from the first
+snapshot (\res{first-snapshot} steps). The same proxy--true gap can thus look
+like the sudden reversal of a learned skill, a skill that is never acquired, or
+a bias present from the start.
+
+\subsection{What the reward pays for does not predict what PPO learns}
 \label{sec:dose}
 
 \begin{figure}[t]
@@ -31,47 +66,204 @@ over \res{seeds} runs with 95\% $t$ intervals.}
 \includegraphics[width=\linewidth]{figures/dose_response.pdf}
 \caption{Final ID hack and success rates of Proxy PPO as the corruption
 channel is scaled ($\lambda=1$ is the default; \res{sweep-seeds} seeds per
-value). The dashed line is Oracle PPO's success rate.}
+value, 95\% $t$ intervals), next to the exact proxy-optimal policy on
+\res{optimal-layouts} layouts. The dashed line is Oracle PPO's success rate.}
 \label{fig:dose}
 \end{figure}
 
-\subsection{Monitorability}
+Figure~\ref{fig:dose} retrains Proxy PPO with the channel scaled by $\lambda$
+and compares it with the exact proxy-optimal policy, which we compute by
+enumerating every reachable state of each of \res{optimal-layouts} ID layouts
+and solving the finite-horizon MDP under PPO's discount factor
+(Appendix~\ref{app:optimal}). At $\lambda=0$ both behave as intended. At every
+positive scale we tested, the proxy-optimal policy hacks on every layout of
+every task (\res{opt-ProxyFarming-0.25-hack}\%, \res{opt-SensorTamper-0.25-hack}\%
+and \res{opt-GemTimeout-0.25-hack}\% at $\lambda=0.25$): a quarter of the
+default channel already makes the exploit worth more than the task.
+
+PPO departs from this reference in both directions. In \PF{} and \GT{}, it
+\emph{under-exploits}. At $\lambda=0.25$ it hacks in
+\res{sweep-ProxyFarming-0.25-hack}\% and \res{sweep-GemTimeout-0.25-hack}\% of
+episodes, and in \PF{} still in only \res{sweep-ProxyFarming-0.5-hack}\% at
+$\lambda=0.5$, against \res{sweep-ProxyFarming-1-hack}\% at $\lambda=1$. At
+$\lambda=0.5$ in \GT{}, the five runs disagree, with hack rates from
+\res{sweep-GemTimeout-0.5-hack-min}\% to \res{sweep-GemTimeout-0.5-hack-max}\%.
+Whether an exploit is learned is decided by whether PPO finds it within its
+budget, not by whether the reward pays for it, which it does at every positive
+scale. This is the kind of optimizer-dependent threshold that
+\citet{pan2022effects} report, here measured against an exact optimum.
+
+Where PPO does hack, it \emph{over-commits}. At $\lambda=0.25$, the
+proxy-optimal \ST{} policy tampers and then delivers the object, succeeding on
+\res{opt-SensorTamper-0.25-success}\% of layouts; PPO tampers in
+\res{sweep-SensorTamper-0.25-hack}\% of episodes and succeeds in
+\res{sweep-SensorTamper-0.25-success}\%. At the default scale of \PF{}, the
+optimum farms the beacon and then reaches the goal on
+\res{opt-ProxyFarming-1-success}\% of layouts; PPO does so on
+\res{sweep-ProxyFarming-1-success}\%. In both cases PPO's hack is more harmful
+than the reward requires, so an analysis of the reward function alone would
+underestimate the harm of training on it.
+
+\subsection{Monitors look better pooled than they are}
 \label{sec:monitors}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/monitors.pdf}
-\caption{Held-out hack-monitor AUC (logistic regression, leave-one-seed-out)
-for each channel, with the within-snapshot AUC, the best single feature
-(selected on training folds) and the policy-identity baseline.}
+\caption{Held-out hack-monitor AUC (logistic regression, leave-one-seed-out,
+95\% $t$ intervals over held-out seeds) for each channel. Lines join each
+channel's AUC to its AUC within one policy snapshot (open circles); diamonds
+are the best single feature (selected on training folds) and dashed lines the
+policy-identity baseline. Note the zoomed axis.}
 \label{fig:monitors}
 \end{figure}
 
 \begin{table}[t]
 \centering
-\caption{Hack monitors (logistic regression). $^\dagger$The privileged channel
-sees every field the label is computed from and is a positive control.}
+\caption{Hack monitors (logistic regression). Hack rates of the monitor
+datasets in parentheses. $^\dagger$The privileged channel sees every field the
+label is computed from and is a positive control.}
 \label{tab:monitors}
 \small
 \resizebox{\linewidth}{!}{\input{generated/table_monitors}}
 \end{table}
 
-\subsection{Training against the monitor}
+Hack monitors are trained on \res{monitor-episodes} ID episodes per task, of
+which \res{mon-ProxyFarming-hack-rate}\% (\PF{}),
+\res{mon-SensorTamper-hack-rate}\% (\ST{}) and \res{mon-GemTimeout-hack-rate}\%
+(\GT{}) are hacks. Held-out AUCs are high on every channel
+(Figure~\ref{fig:monitors}, Table~\ref{tab:monitors}). The behavior monitor,
+which sees only positions and actions, reaches
+\res{mon-ProxyFarming-hack-behavior-logistic-auc},
+\res{mon-SensorTamper-hack-behavior-logistic-auc} and
+\res{mon-GemTimeout-hack-behavior-logistic-auc}. Read alone, these numbers say
+that hacking is easy to monitor from behavior.
+
+Most of that AUC is available without looking at the episode. The
+policy-identity baseline, which knows only the method and snapshot that
+produced an episode, reaches \res{mon-ProxyFarming-hack-behavior-logistic-identity},
+\res{mon-SensorTamper-hack-behavior-logistic-identity} and
+\res{mon-GemTimeout-hack-behavior-logistic-identity}, because hacking is
+concentrated in late Proxy PPO snapshots. The behavior monitor beats it in every
+task, but only by \res{mon-ProxyFarming-hack-behavior-logistic-gain-identity}
+\res{mon-ProxyFarming-hack-behavior-logistic-gain-identity-ci},
+\res{mon-SensorTamper-hack-behavior-logistic-gain-identity}
+\res{mon-SensorTamper-hack-behavior-logistic-gain-identity-ci} and
+\res{mon-GemTimeout-hack-behavior-logistic-gain-identity}
+\res{mon-GemTimeout-hack-behavior-logistic-gain-identity-ci} (paired over
+held-out seeds). Among the episodes of a single policy snapshot, where policy
+identity carries no information, its AUC is
+\res{mon-ProxyFarming-hack-behavior-logistic-within},
+\res{mon-SensorTamper-hack-behavior-logistic-within} and
+\res{mon-GemTimeout-hack-behavior-logistic-within}. This within-snapshot AUC is
+the relevant number for a monitor deployed on one policy, and it is the one a
+pooled evaluation hides.
+
+The single-feature baseline qualifies the result further. In \ST{}, the
+fraction of \emph{interact} actions alone reaches
+\res{mon-SensorTamper-hack-behavior-logistic-single}: tampering requires
+pressing \emph{interact}, an action the intended task never needs (the object
+is picked up by stepping onto it), and Proxy PPO presses it on most steps, so
+the result is flagged trivial. In \PF{} and \GT{}, the learned monitor adds
+\res{mon-ProxyFarming-hack-behavior-logistic-gain-feature}
+\res{mon-ProxyFarming-hack-behavior-logistic-gain-feature-ci} and
+\res{mon-GemTimeout-hack-behavior-logistic-gain-feature}
+\res{mon-GemTimeout-hack-behavior-logistic-gain-feature-ci} AUC over the best
+single feature. Seeing the goal (the task channel) changes little. The
+privileged channel, which can reconstruct the label, reaches
+\res{mon-ProxyFarming-hack-privileged-logistic-auc},
+\res{mon-SensorTamper-hack-privileged-logistic-auc} and
+\res{mon-GemTimeout-hack-privileged-logistic-auc} and is flagged inadmissible,
+as it should be. Behavior monitors also transfer: trained on ID episodes, they
+score \res{mon-ProxyFarming-hack-behavior-logistic-ood},
+\res{mon-SensorTamper-hack-behavior-logistic-ood} and
+\res{mon-GemTimeout-hack-behavior-logistic-ood} on the OOD episodes of held-out
+seeds, and trained on the first half of training,
+\res{mon-ProxyFarming-hack-behavior-logistic-late},
+\res{mon-SensorTamper-hack-behavior-logistic-late} and
+\res{mon-GemTimeout-hack-behavior-logistic-late} on the second half.
+Gradient-boosted trees and harmful-hack labels give the same picture
+(Appendix~\ref{app:results}).
+
+\subsection{Training against the monitor removes hacking in one task and hides it in another}
 \label{sec:penalty}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/monitor_penalty.pdf}
 \caption{Proxy PPO trained with a penalty of $\beta=\res{pen-beta}$ times the
-behavior monitor's hack probability (\res{pen-seeds} seeds).}
+behavior monitor's hack probability (\res{pen-seeds} seeds, ID snapshots; thin
+lines are individual runs). The dashed line is the hack rate of unpenalized
+Proxy PPO.}
 \label{fig:penalty}
 \end{figure}
 
 \begin{table}[t]
 \centering
-\caption{Agents trained against the behavior monitor, compared with the
-monitor's out-of-run recall on unpenalized final policies.}
+\caption{Agents trained against the behavior monitor (ID layouts; mean over
+runs with 95\% $t$ intervals), and the monitor's recall on hacks before and
+after. \emph{Unpenalized}: out-of-run recall on the final policies of the main
+experiment. \emph{Penalized}: recall of the training monitor, over runs with at
+least \res{pen-min-hacks} hacking episodes.}
 \label{tab:penalty}
 \small
 \resizebox{\linewidth}{!}{\input{generated/table_penalty}}
 \end{table}
+
+\begin{table}[t]
+\centering
+\caption{How penalized agents evade the monitor. For the hacking episodes of
+the last monitored snapshot of unpenalized and penalized Proxy PPO (ID), the
+three behavior features that changed the monitor's mean logit most, their
+standard deviation in the monitor's training data, and each feature's signed
+share of the total change (negative: the feature moved towards looking like a
+hack). \PF{} is omitted because its penalized agents produce almost no hacks.}
+\label{tab:evasion}
+\small
+\resizebox{\linewidth}{!}{\input{generated/table_evasion}}
+\end{table}
+
+Before it is used for training, the behavior monitor is a good detector:
+fitted on the other seeds, it flags \res{pen-ProxyFarming-recall-before}\%,
+\res{pen-SensorTamper-recall-before}\% and \res{pen-GemTimeout-recall-before}\%
+of the hacks of unpenalized final policies (Table~\ref{tab:penalty}).
+Figure~\ref{fig:penalty} shows what happens when it becomes part of the reward.
+In \PF{}, the penalty removes hacking: penalized agents hack in
+\res{pen-ProxyFarming-hack}\% of episodes and succeed in
+\res{pen-ProxyFarming-success}\%, close to Oracle PPO's
+\res{ProxyFarming-oracle-id-success}\%. In \ST{}, all but
+\res{pen-SensorTamper-runs-hacking} of the \res{pen-seeds} runs do the same, but
+that run tampers in \res{pen-SensorTamper-worst-run-hack}\% of episodes, of which
+the monitor flags \res{pen-SensorTamper-worst-run-recall}\%. In \GT{}, all
+\res{pen-GemTimeout-runs-hacking} runs keep hacking: the penalized agents hack in
+\res{pen-GemTimeout-hack}\% of episodes, the monitor flags
+\res{pen-GemTimeout-recall-after}\% of those hacks, and
+\res{pen-GemTimeout-undetected-hack}\% of all episodes are hacks it misses. The
+agents have not stopped hacking; they have stopped looking like it. From the
+monitor's side, the outcomes look alike: it flags
+\res{pen-ProxyFarming-flagged}\%, \res{pen-SensorTamper-flagged}\% and
+\res{pen-GemTimeout-flagged}\% of the penalized agents' episodes, and only the
+ground-truth labels show that a low flag rate means removal in \PF{} and evasion
+in \GT{}.
+
+Because the monitor is linear, the drop in its score can be attributed to
+individual features (Table~\ref{tab:evasion}). In \GT{}, the penalized agents'
+hacking episodes spend \res{pen-GemTimeout-frac-interact-after-pct}\% of their
+steps on \emph{interact}, which does nothing in this task, against
+\res{pen-GemTimeout-frac-interact-before-pct}\% for unpenalized agents. In the
+monitor's training data this fraction hardly varied (standard deviation
+\res{pen-GemTimeout-frac-interact-sd}), so the small negative weight the monitor
+gave it, evaluated far outside the range it was fitted on, accounts for
+\res{pen-GemTimeout-frac-interact-share}\% of the drop in its logit. The agents
+did not adopt a behavior that the monitor had learned to associate with honest
+play; they found a direction in which the monitor extrapolates. In \ST{}, the
+evading run presses \emph{interact} on \res{pen-SensorTamper-frac-interact-after-pct}\%
+of steps instead of \res{pen-SensorTamper-frac-interact-before-pct}\% and moves
+in between (left on \res{pen-SensorTamper-frac-left-after-pct}\% and right on
+\res{pen-SensorTamper-frac-right-after-pct}\% of steps, against
+\res{pen-SensorTamper-frac-left-before-pct}\% and
+\res{pen-SensorTamper-frac-right-before-pct}\%), which breaks up the repeated
+actions and long stays that the monitor weights heavily and changes its mean
+logit by \res{pen-SensorTamper-logit-change}. These features are correlated, so
+how the change splits between them is less meaningful than in \GT{}, where one
+feature dominates.

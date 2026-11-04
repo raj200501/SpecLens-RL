@@ -1,0 +1,29 @@
+\begin{tabular}{@{}ll@{}}
+\toprule
+Setting & Value \\
+\midrule
+total steps & 1,500,000 \\
+n envs & 16 \\
+rollout steps & 128 \\
+epochs & 4 \\
+minibatch size & 512 \\
+learning rate & 0.0003 \\
+adam eps & 1e-05 \\
+anneal lr & yes \\
+gamma & 0.99 \\
+gae lambda & 0.95 \\
+clip eps & 0.2 \\
+value coef & 0.5 \\
+entropy coef & 0.01 \\
+max grad norm & 0.5 \\
+hidden & 256 \\
+channels & 16 \\
+seeds (main / sweep) & 10 / 5 \\
+policy snapshots per run & 20 \\
+evaluation layouts per split & 500 \\
+layouts per snapshot (training curves) & 100 \\
+channel scales (sweep) & 0, 0.25, 0.5, 1, 2 \\
+layouts for the exact proxy-optimal policy & 100 \\
+monitor episodes per snapshot and split & 20 \\
+\bottomrule
+\end{tabular}
