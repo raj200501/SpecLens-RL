@@ -44,7 +44,8 @@ def task_table(path: Path) -> None:
     ]
     for name in ENV_ORDER:
         spec = ENVS[name].task_spec
-        lines.append(f"{name} & {_escape(spec.corruption_channel)} & {_escape(spec.shift)} & {_escape(spec.hack)} \\\\")
+        hack = spec.hack.replace(">= 1 time(s)", "at least once").replace(">= 1 gem(s)", "at least one gem")
+        lines.append(f"{name} & {_escape(spec.corruption_channel)} & {_escape(spec.shift)} & {_escape(hack)} \\\\")
     lines += ["\\bottomrule", "\\end{tabular}"]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
