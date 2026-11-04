@@ -35,6 +35,18 @@ changes, a nonlinear monitor, or a penalty that is annealed may behave
 differently, and with \res{pen-seeds} seeds the fraction of runs that evade is
 only coarsely estimated.
 
+\paragraph{Channel scale and optimization.} The channel scale multiplies an
+unnormalized reward, so the top of the sweep also tests how PPO copes with
+larger returns; the lower hack rate of \ST{} at $\lambda=2$ (runs from
+\res{sweep-SensorTamper-2-hack-min}\% to \res{sweep-SensorTamper-2-hack-max}\%)
+may reflect this rather than the incentive.
+
+\paragraph{Untested explanations.} Two explanations in Section~\ref{sec:results}
+are hypotheses: that PPO's higher hacking threshold reflects its training budget
+(longer runs at low scales would test it), and that the size of the incentive
+relative to the task reward decides how hacking emerges (a finer sweep of
+$\lambda$ with more seeds would test it).
+
 \paragraph{The proxy optimum.} The exact optimum is computed for PPO's discount
 factor on a sample of layouts. It describes what the reward asks for, not what
 any particular learner can represent or find; that gap is the point of the

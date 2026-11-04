@@ -88,6 +88,7 @@ have \res{opt-ProxyFarming-states-min}--\res{opt-ProxyFarming-states-max}
 (\ST{}) and \res{opt-GemTimeout-states-min}--\res{opt-GemTimeout-states-max}
 (\GT{}) reachable states.
 
+\clearpage
 \section{Additional Results}
 \label{app:results}
 
@@ -113,7 +114,9 @@ regression (compare Table~\ref{tab:monitors}).}
 \begin{table}[h]
 \centering
 \caption{Monitors for \emph{harmful} hacks (channel use without task success),
-logistic regression. $^\dagger$Inadmissible, as in Table~\ref{tab:monitors}.}
+logistic regression. $^\dagger$Inadmissible, as in Table~\ref{tab:monitors}. In \ST{}
+and \GT{} nearly every hack is harmful, so the privileged channel can reconstruct
+these labels too, although they are formally admissible.}
 \label{tab:monitors-harmful}
 \small
 \resizebox{\linewidth}{!}{\input{generated/table_monitors_harmful_hack_logistic}}

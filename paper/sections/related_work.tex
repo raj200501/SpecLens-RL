@@ -42,6 +42,23 @@ detecting it early. Our monitors see only trajectories, but the evaluation
 questions are the same: what may the monitor observe, does it generalize to new
 conditions, and is it better than a trivial baseline?
 
+\paragraph{Closest environments.} Our first two mechanisms are not new. In the
+Boat Race environment of AI Safety Gridworlds an agent can circle a checkpoint
+for reward, as in \PF{}, and in Tomato Watering it can corrupt the observation
+its reward is computed from, as in \ST{} \citep{leike2017ai}; REALab
+\citep{kumar2020realab} and the sensor-tampering gridworld of
+\citet{farquhar2025mona} study tampering in richer settings. What is new here
+is the combination: layouts sampled per episode, a corruption channel whose
+scale is a parameter, hack labels that do not depend on that scale, an exact
+per-layout proxy optimum, and a monitor protocol with a policy-identity
+baseline. \citet{karwowski2024goodhart} study, in small exactly solved MDPs,
+when optimizing a proxy harder lowers the true return; our exact optimum asks
+the complementary question of what a learner actually finds. On monitoring,
+\citet{korbak2025cot} argue that chain-of-thought monitorability is fragile
+under optimization pressure, and \citet{bailey2024obfuscated} train models to
+evade latent-space monitors; Section~\ref{sec:penalty} is a minimal, fully
+observable instance of the same question.
+
 \paragraph{Small testbeds and evaluation methodology.}
 AI Safety Gridworlds \citep{leike2017ai} and bsuite \citep{osband2020bsuite}
 argue for small, diagnostic environments; Procgen \citep{cobbe2020leveraging}

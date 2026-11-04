@@ -5,23 +5,26 @@ misspecification cannot be switched off. We present \framework{}, three
 procedurally generated gridworld tasks in which the proxy reward differs from a
 known true objective through one explicit, scalable corruption channel:
 farmable reward shaping (\PF{}), tampering with a reward sensor (\ST{}), and a
-bonus for detours that break a deadline the proxy omits (\GT{}). Across \res{n-runs-all} PPO
-runs, hacking emerges in three different ways, from the late abandonment of a
-mastered task to an exploit learned instead of the task. Solving
+bonus for detours that break a deadline the proxy omits (\GT{}). In \res{n-runs-all} PPO runs, hacking at the
+default channel scales emerges in three different ways, from the late
+abandonment of a mastered task to an exploit learned instead of the task, and
+the pattern shifts with the channel's strength. Solving
 \res{optimal-layouts} layouts per task exactly shows that the proxy-optimal
 policy hacks on most layouts from \res{opt-threshold-min}--\res{opt-threshold-max}
-times the default channel strength, whereas PPO starts hacking only at several
-times that in \PF{} and \GT{}; where PPO hacks in \PF{} and \ST{}, it gives up
+times the default channel strength, whereas within its training budget PPO
+starts hacking only at several times that in \PF{} and \GT{}; where PPO hacks in \PF{} and \ST{}, it gives up
 more of the true objective than the optimum does. Monitors that see only
 positions and actions reach held-out AUCs of \res{mon-behavior-auc-min}--\res{mon-behavior-auc-max},
-but a baseline that knows only what kind of policy produced an episode reaches
+but when honest reference policies are pooled in, as is common, a baseline that
+knows only what kind of policy produced an episode reaches
 \res{mon-behavior-identity-min}--\res{mon-behavior-identity-max}; within single
 Proxy PPO policies, the monitors' AUC is
-\res{mon-behavior-within-min}--\res{mon-behavior-within-max}, lowest where
-hacking emerges late in training. Training agents against such a monitor
-removes hacking in \PF{} and hides it in \GT{}, where agents still hack in \res{pen-GemTimeout-hack}\% of episodes while the
-monitor's recall on hacks falls from \res{pen-GemTimeout-recall-before}\% to
-\res{pen-GemTimeout-recall-after}\%. Every result cited in this paper is
+\res{mon-behavior-within-min}--\res{mon-behavior-within-max}, lowest in \PF{}. Training agents against such a monitor
+removes hacking in \PF{} and hides it in \GT{}, where agents still hack in
+\res{pen-GemTimeout-hack}\% of episodes while the monitor's recall on hacks falls
+from \res{pen-GemTimeout-recall-before}\% to \res{pen-GemTimeout-recall-after}\%;
+a monitor the agents never trained against still catches
+\res{pen-GemTimeout-heldout-recall}\% of them. Every result cited in this paper is
 regenerated from saved results by one command and checked in continuous
 integration.
 \end{abstract}

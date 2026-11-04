@@ -60,8 +60,8 @@ so the monitor is always scored on policy lineages it has never seen. We report
 the mean held-out ROC-AUC with a $t$ interval over folds, the
 \emph{within-snapshot} AUC (the mean AUC within each Proxy PPO snapshot that
 contains both classes, i.e.\ among the episodes of a single policy that a
-deployed monitor would watch; Oracle PPO snapshots contain at most a few
-accidental hacks and are left out), and two transfer tests: training on ID
+deployed monitor would watch; Oracle PPO snapshots, whose hacks are accidental,
+are reported separately), and two transfer tests: training on ID
 episodes and testing on the held-out seed's OOD episodes, and training on the
 first half of training and testing on the second half.
 

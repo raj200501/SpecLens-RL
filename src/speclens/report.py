@@ -21,7 +21,7 @@ import pandas as pd
 from speclens.analysis import figures, tables
 from speclens.analysis.monitoring import analyze
 from speclens.analysis.optimal import optimal_behavior
-from speclens.analysis.penalty import MIN_RECALL_HACKS, evasion_summary, summarize_penalty
+from speclens.analysis.penalty import MIN_RECALL_HACKS, evasion_summary, heldout_monitor, summarize_penalty
 from speclens.analysis.stats import per_run_means, summarize
 from speclens.analysis.style import envs_in
 from speclens.experiment import EVAL_SEEDS, load_config, monitor_path
@@ -89,6 +89,11 @@ def build(cfg: dict, results: Path, paper: Path, readme: Path | None = None) -> 
     main_curves = curves[(curves.method == "proxy") & (curves.channel_scale == 1.0)]
     onsets = emergence(main_curves[main_curves.seed < cfg["main"]["seeds"]])
     onsets.to_csv(results / "summary_emergence.csv", index=False, float_format="%.4f")
+    sweep_curves = curves[(curves.method == "proxy") & (curves.seed < cfg["sweep"]["seeds"])]
+    sweep_onsets = pd.concat(
+        [emergence(part).assign(channel_scale=scale) for scale, part in sweep_curves.groupby("channel_scale")]
+    )
+    sweep_onsets.to_csv(results / "summary_emergence_sweep.csv", index=False, float_format="%.4f")
 
     sweep = episodes[(episodes.method == "proxy") & (episodes.seed < cfg["sweep"]["seeds"])]
     sweep_summary = summarize(sweep, ["env", "channel_scale", "split"], MAIN_METRICS)
@@ -122,6 +127,11 @@ def build(cfg: dict, results: Path, paper: Path, readme: Path | None = None) -> 
     numbers.update(_result_numbers(cfg, main_summary, dom, sweep_summary, monitor_results, runs, monitor_data))
     numbers.update(_sweep_range_numbers(sweep))
     numbers.update(_emergence_numbers(onsets, main_curves))
+    for (env, scale), part in sweep_onsets.groupby(["env", "channel_scale"]):
+        key = f"dyn-{env}-{scale:g}"
+        numbers[f"{key}-switched"] = str(int(part.onset.notna().sum()))
+        numbers[f"{key}-onset-median"] = _steps(part.onset.median())
+        numbers[f"{key}-peak-success-before"] = _pct(part.peak_success_before.mean())
     numbers.update(_optimal_numbers(optimal_summary))
     numbers.update(_threshold_numbers(sweep_summary, optimal_summary))
     for env, states in optimal.groupby("env").n_states:
@@ -146,6 +156,13 @@ def build(cfg: dict, results: Path, paper: Path, readme: Path | None = None) -> 
         shifts.to_csv(results / "summary_evasion.csv", index=False, float_format="%.4f")
         tables.evasion_table(shifts, gen_dir / "table_evasion.tex")
         numbers.update(_evasion_numbers(shifts))
+        heldout = heldout_monitor(monitor_data, penalty_monitor_data, channel)
+        heldout.to_csv(results / "summary_heldout_monitor.csv", index=False, float_format="%.4f")
+        for _, r in heldout.iterrows():
+            numbers[f"pen-{r.env}-heldout-recall"] = _pct(r.recall)
+            numbers[f"pen-{r.env}-heldout-fpr"] = _pct(r.false_positive_rate)
+            numbers[f"pen-{r.env}-out-of-support"] = _pct(r.out_of_support)
+        numbers.update(_within_run_auc_numbers(penalty_episodes))
     tables.write_numbers(numbers.items(), gen_dir / "numbers.tex")
     (results / "numbers.json").write_text(json.dumps(numbers, indent=2) + "\n", encoding="utf-8")
     if readme is not None:
@@ -224,6 +241,9 @@ def _result_numbers(cfg, main_summary, dom, sweep_summary, monitor_results, runs
         yield f"{key}-auc", _auc(r.auc)
         yield f"{key}-ci", f"[{_auc(r.auc_lo)}, {_auc(r.auc_hi)}]"
         yield f"{key}-within", _auc(r.within_snapshot_auc)
+        yield f"{key}-proxy-pool", _auc(r.proxy_auc)
+        yield f"{key}-within-oracle", _auc(r.within_oracle_auc)
+        yield f"{key}-proxy-pool-identity", _auc(r.proxy_identity_auc)
         yield f"{key}-identity", _auc(r.identity_auc)
         yield f"{key}-single", _auc(r.selected_feature_auc)
         for gain in ("identity", "feature"):
@@ -296,6 +316,21 @@ def _threshold_numbers(sweep_summary, optimal_summary, rate: float = 0.5):
     by_scale = optimal_summary.groupby("channel_scale").hack.min().sort_index()
     always = [s for s in by_scale.index if (by_scale[by_scale.index >= s] == 1.0).all()]
     yield "opt-all-layouts-from", f"{min(always):g}" if always else "--"
+
+
+def _within_run_auc_numbers(episodes):
+    """The training monitor's AUC among each penalized run's own ID episodes (runs with both classes)."""
+    from sklearn.metrics import roc_auc_score
+
+    id_episodes = episodes[episodes.split == "id"]
+    for env, part in id_episodes.groupby("env"):
+        aucs = [
+            roc_auc_score(run.hack, run.monitor_score)
+            for _, run in part.groupby("seed")
+            if run.hack.sum() >= MIN_RECALL_HACKS and run.hack.nunique() == 2
+        ]
+        yield f"pen-{env}-within-run-auc", _auc(sum(aucs) / len(aucs)) if aucs else "--"
+        yield f"pen-{env}-within-run-auc-runs", str(len(aucs))
 
 
 def _penalty_numbers(cfg, penalty, runs, episodes):

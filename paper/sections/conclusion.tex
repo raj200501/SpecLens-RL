@@ -16,7 +16,7 @@ hacks in \PF{} and \ST{}, it is more harmful than the optimum. A reward
 specification is safe or unsafe only relative to the optimizer that will be run
 on it, across seeds.
 
-\emph{Pooled monitor evaluations say little about monitorability.} When the policies
+\emph{Pooled monitor evaluations can hide weak monitoring within a policy.} When the policies
 pooled in an evaluation hack at different rates (here mostly Proxy against
 Oracle PPO, and in \PF{} also early against late snapshots), a monitor is
 rewarded for recognizing the policy rather than the behavior. A policy-identity baseline and the
@@ -26,10 +26,14 @@ weaker. We recommend reporting both.
 
 \emph{A monitor's recall before it becomes a training signal says little about
 its recall afterwards.} The same penalty removed hacking in one task and taught
-agents to evade the monitor in another, consistent with the obfuscation
-\citet{baker2025monitoring} observe when optimizing against chain-of-thought
-monitors. Only the known true objective let us tell the two outcomes apart; in
-deployed systems, that is exactly what is missing.
+agents to evade the monitor in another, a small-scale analogue of the
+obfuscation \citet{baker2025monitoring} observe when optimizing against
+chain-of-thought monitors, although here the evasion did not fool an
+independently fitted monitor, which suggests held-out or ensembled monitors as a
+cheap check. The monitor's own scores could not tell the two outcomes apart.
+The known true objective could, and so could two checks that need no labels on
+the penalized agents: a held-out monitor, and a test for inputs outside the
+monitor's training range.
 
 The environments, the evaluation pipeline and all results are released. A full
 rerun takes about \res{cpu-hours-all} CPU-hours, and the report regenerates

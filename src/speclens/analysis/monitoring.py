@@ -17,8 +17,8 @@ Two baselines guard against monitors that look good for the wrong reason:
 Within-snapshot AUC averages the AUC over the Proxy PPO (run, snapshot) cells
 that contain both classes, i.e. it measures whether a monitor separates hacking
 from non-hacking episodes of the *same* policy, for the policies a deployed
-monitor would watch. Oracle PPO snapshots are left out: they contain at most a
-few accidental hacks, which make per-snapshot AUCs mostly noise.
+monitor would watch. Oracle PPO snapshots, whose hacks are accidental, are
+reported separately (``within_oracle_auc``).
 """
 
 from __future__ import annotations
@@ -56,6 +56,7 @@ RESULT_COLUMNS = [
     "env", "target", "channel", "model", "n_episodes", "n_runs", "positive_rate", "label_status",
     "admissible", "auc", "auc_lo", "auc_hi", "n_folds", "auc_min_fold", "within_snapshot_auc", "pr_auc",
     "ood_auc", "late_auc", "identity_auc", "identity_auc_lo", "identity_auc_hi", "method_identity_auc",
+    "proxy_auc", "proxy_identity_auc", "within_oracle_auc",
     "selected_feature", "selected_feature_auc", "selected_feature_auc_lo", "selected_feature_auc_hi", "trivial",
     "gain_over_identity", "gain_over_identity_lo", "gain_over_identity_hi",
     "gain_over_feature", "gain_over_feature_lo", "gain_over_feature_hi",
@@ -132,12 +133,14 @@ def _monitor_rows(env: str, data: pd.DataFrame, target: str, models: list[str]) 
     groups = id_rows["seed"].to_numpy()
     strata = id_rows["method"] + "/" + id_rows["seed"].astype(str) + "/" + id_rows["checkpoint"].astype(str)
     strata = strata.to_numpy()
-    proxy = (id_rows["method"] == "proxy").to_numpy()
     label = TARGETS[target]
     y = label(id_rows)
     status = label_status(y)
     identity = policy_identity_cv(id_rows, y, groups) if status == "ok" else None
     method_only = policy_identity_cv(id_rows, y, groups, by=("method",)) if status == "ok" else None
+    proxy = (id_rows["method"] == "proxy").to_numpy()
+    proxy_ok = status == "ok" and label_status(y[proxy]) == "ok"
+    proxy_identity = policy_identity_cv(id_rows[proxy], y[proxy], groups[proxy]) if proxy_ok else None
     for channel in CHANNELS:
         row = {
             "env": env,
@@ -160,6 +163,8 @@ def _monitor_rows(env: str, data: pd.DataFrame, target: str, models: list[str]) 
         for model in models:
             cv = grouped_cv(X, y, groups, model)
             within = ~np.isnan(cv.oof_scores) & proxy
+            oracle = ~np.isnan(cv.oof_scores) & ~proxy
+            proxy_cv = grouped_cv(X[proxy], y[proxy], groups[proxy], model) if proxy_ok else None
             lo, hi = mean_ci(cv.fold_auc, bounds=(0.0, 1.0))
             to_ood = grouped_transfer(
                 X, y, groups, ood_rows[cols].to_numpy(), label(ood_rows), ood_rows.seed.to_numpy(), model
@@ -178,6 +183,7 @@ def _monitor_rows(env: str, data: pd.DataFrame, target: str, models: list[str]) 
                     "n_folds": len(cv.fold_auc),
                     "auc_min_fold": float(np.min(cv.fold_auc)) if cv.fold_auc else np.nan,
                     "within_snapshot_auc": stratified_auc(y[within], cv.oof_scores[within], strata[within]),
+                    "within_oracle_auc": stratified_auc(y[oracle], cv.oof_scores[oracle], strata[oracle]),
                     "pr_auc": pr_auc(y, cv.oof_scores),
                     "ood_auc": float(np.mean(to_ood)) if to_ood else np.nan,
                     "late_auc": float(np.mean(to_late)) if to_late else np.nan,
@@ -185,6 +191,8 @@ def _monitor_rows(env: str, data: pd.DataFrame, target: str, models: list[str]) 
                     "identity_auc_lo": mean_ci(identity.fold_auc, bounds=(0.0, 1.0))[0],
                     "identity_auc_hi": mean_ci(identity.fold_auc, bounds=(0.0, 1.0))[1],
                     "method_identity_auc": method_only.mean_auc,
+                    "proxy_auc": proxy_cv.mean_auc if proxy_cv else np.nan,
+                    "proxy_identity_auc": proxy_identity.mean_auc if proxy_identity else np.nan,
                     "selected_feature": cols[Counter(chosen).most_common(1)[0][0]] if chosen else "",
                     "selected_feature_auc": float(np.mean(selected_auc)) if selected_auc else np.nan,
                     "selected_feature_auc_lo": mean_ci(selected_auc, bounds=(0.0, 1.0))[0],

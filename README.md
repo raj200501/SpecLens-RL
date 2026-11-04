@@ -23,18 +23,22 @@ hacking from behavior alone, and what happens when you train against the monitor
 1. **Hacking emerges in three different ways.** ProxyFarming agents first master the intended task and
    abandon it hundreds of thousands of steps later; SensorTamper agents learn to tamper instead of the
    task; GemTimeout agents chase gems almost from the start. Proxy return never drops when hacking takes
-   over, so the training signal gives no warning.
+   over, so the training signal gives no warning. The pattern depends on the channel's strength, not just
+   the mechanism: at twice the default, ProxyFarming looks like SensorTamper.
 2. **What the reward pays for does not predict what PPO learns.** Solving sampled layouts exactly shows
    that the proxy-optimal policy already hacks at a small fraction of the default channel strength, while
-   in two of the tasks PPO starts hacking only at several times that. Where PPO hacks in ProxyFarming and
+   within its training budget PPO starts hacking only at several times that in two of the tasks. Where PPO hacks in ProxyFarming and
    SensorTamper, it gives up more of the true objective than the proxy optimum would.
-3. **Pooled monitor AUCs say little about monitorability.** Monitors that see only positions and actions reach
-   near-perfect held-out AUCs, but a baseline that knows only *what kind of policy* produced an episode
-   (Proxy or Oracle PPO, and at which training stage) comes within a few hundredths of AUC. Within the episodes of a single
+3. **Pooled monitor AUCs can hide weak monitoring within a policy.** Monitors that see only positions and actions reach
+   near-perfect held-out AUCs, but when honest reference policies are pooled in, a baseline that knows only
+   *what kind of policy* produced an episode (Proxy or Oracle PPO, and at which training stage) comes within
+   a few hundredths of AUC. Within the episodes of a single
    policy, the monitors hold up in two tasks but are much weaker in ProxyFarming, where hacking emerges late.
 4. **Training against the monitor removes hacking in one task and hides it in another.** In GemTimeout,
    penalized agents keep collecting gems but pad their episodes with a no-op action whose frequency barely
-   varied in the monitor's training data, and the monitor stops catching their hacks.
+   varied in the monitor's training data, and the monitor stops catching their hacks. The evasion is specific
+   to that monitor: one the agents never trained against still catches most of the hacks, and a simple
+   check for inputs outside the monitor's training range flags them without any labels.
 
 📄 **Paper:** [`paper/main.pdf`](paper/main.pdf) (sources in [`paper/`](paper)). Every experimental result in
 it is regenerated from [`results/`](results) and the configuration by one command.
