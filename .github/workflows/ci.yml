@@ -36,5 +36,5 @@ jobs:
         run: |
           python -m speclens.experiment --config configs/paper.yaml --out results --verify
           python -m speclens.report --config configs/paper.yaml --results results --paper paper
-          git status --porcelain -- paper/generated results/numbers.json results/summary_*.csv results/monitor_*.csv
-          test -z "$(git status --porcelain -- paper/generated results/numbers.json results/summary_*.csv results/monitor_*.csv)"
+          git status --porcelain -- README.md paper/generated results/numbers.json results/summary_*.csv results/monitor_*.csv
+          test -z "$(git status --porcelain -- README.md paper/generated results/numbers.json results/summary_*.csv results/monitor_*.csv)"

@@ -12,6 +12,7 @@ find) it for reasons of exploration?
 
 from __future__ import annotations
 
+import multiprocessing
 import os
 from collections.abc import Iterable
 from concurrent.futures import ProcessPoolExecutor
@@ -132,6 +133,7 @@ def optimal_behavior(
     """Proxy-optimal episodes for every task, channel scale and layout seed."""
     jobs = [(name, seed) for name in envs for seed in seeds]
     solve_layout = partial(_solve_layout, split=split, scales=list(scales), gamma=gamma)
-    with ProcessPoolExecutor(max_workers=workers or min(4, os.cpu_count() or 1)) as pool:
+    context = multiprocessing.get_context("forkserver")  # forking a multithreaded parent can deadlock
+    with ProcessPoolExecutor(max_workers=workers or min(4, os.cpu_count() or 1), mp_context=context) as pool:
         rows = [row for layout in pool.map(solve_layout, jobs, chunksize=8) for row in layout]
     return pd.DataFrame(rows)

@@ -45,7 +45,8 @@ labels are in `info`.
 
 ## Results
 
-*Results from the full experiment run are being regenerated with the final code and will be added here.*
+<!-- results:begin -->
+<!-- results:end -->
 
 ## What we got wrong the first time
 

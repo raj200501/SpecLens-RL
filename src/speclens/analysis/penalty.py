@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from speclens.analysis.stats import summarize
 from speclens.monitors.evaluate import build_model
 from speclens.monitors.features import channel_features
+from speclens.monitors.penalty import LinearMonitor
 
 PENALTY_METRICS = [
     "hack", "harmful_hack", "flagged", "undetected_hack", "undetected_harmful_hack",
@@ -59,3 +61,66 @@ def summarize_penalty(episodes: pd.DataFrame, monitor_data: pd.DataFrame, channe
         )
         summary = summary.merge(stats, on="env", how="left")
     return summary
+
+
+def final_hacks(monitor_data: pd.DataFrame) -> pd.DataFrame:
+    """Hacking ID episodes of each run's last monitored snapshot."""
+    data = monitor_data[(monitor_data.split == "id") & (monitor_data.method == "proxy")]
+    return data[(data.checkpoint == data.checkpoint.max()) & (data.hack == 1)]
+
+
+def evasion(before: pd.DataFrame, after: pd.DataFrame, monitor: LinearMonitor) -> pd.DataFrame:
+    """Decompose the change in a linear monitor's score between two sets of hacking episodes.
+
+    The monitor's logit is linear in standardized features, so the change in
+    its mean logit from ``before`` (hacks of unpenalized agents) to ``after``
+    (hacks of agents trained against the monitor) is exactly the sum over
+    features of ``coef * (change in mean) / scale``. One row per feature, with
+    the raw feature means and that feature's share of the change.
+    """
+    rows = []
+    for name, scale, coef in zip(monitor.features, monitor.scale, monitor.coef):
+        b, a = float(before[name].mean()), float(after[name].mean())
+        rows.append({"feature": name, "coef": coef, "before": b, "after": a, "contribution": coef * (a - b) / scale})
+    return pd.DataFrame(rows)
+
+
+def monitor_scores(data: pd.DataFrame, monitor: LinearMonitor) -> np.ndarray:
+    """The monitor's hack probability for every row (vectorized ``LinearMonitor.score``)."""
+    x = (data[list(monitor.features)].to_numpy(dtype=float) - np.array(monitor.mean)) / np.array(monitor.scale)
+    return 1.0 / (1.0 + np.exp(-(x @ np.array(monitor.coef) + monitor.intercept)))
+
+
+def evasion_summary(
+    monitor_data: pd.DataFrame,
+    penalty_monitor_data: pd.DataFrame,
+    monitors: dict[str, LinearMonitor],
+    min_hacks: int = 10,
+) -> pd.DataFrame:
+    """Per task and monitor feature: how the final hacks of penalized agents differ from unpenalized ones.
+
+    Tasks whose penalized agents produce fewer than ``min_hacks`` hacking
+    episodes at their last monitored snapshot are left out: there is no hacking
+    left to describe. Recall is the fraction of hacks the training monitor flags.
+    """
+    parts = []
+    for env, monitor in monitors.items():
+        before = final_hacks(monitor_data[monitor_data.env == env])
+        after = final_hacks(penalty_monitor_data[penalty_monitor_data.env == env])
+        if len(after) < min_hacks:
+            continue
+        shift = evasion(before, after, monitor)
+        parts.append(
+            shift.assign(
+                env=env,
+                n_before=len(before),
+                n_after=len(after),
+                runs_after=after.seed.nunique(),
+                recall_before=float((monitor_scores(before, monitor) >= monitor.threshold).mean()),
+                recall_after=float((monitor_scores(after, monitor) >= monitor.threshold).mean()),
+                share=shift.contribution / shift.contribution.sum(),
+            )
+        )
+    columns = ["env", "feature", "coef", "before", "after", "contribution", "share", "n_before", "n_after",
+               "runs_after", "recall_before", "recall_after"]  # fmt: skip
+    return pd.concat(parts, ignore_index=True)[columns] if parts else pd.DataFrame(columns=columns)

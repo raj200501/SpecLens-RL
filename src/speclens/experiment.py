@@ -97,10 +97,14 @@ def plan_runs(cfg: dict) -> list[Run]:
 
 
 def plan_penalty_runs(cfg: dict) -> list[Run]:
-    """Proxy PPO trained against a hack monitor, on seeds disjoint from the main runs."""
+    """Proxy PPO trained against a hack monitor, on seeds disjoint from the main runs.
+
+    Their snapshots are rolled out for monitor features like the main runs', so
+    the report can measure how penalized behavior moved relative to the monitor.
+    """
     pen = cfg["monitor_penalty"]
     return [
-        Run(env, "proxy", pen["seed_offset"] + seed, monitor_beta=float(pen["beta"]))
+        Run(env, "proxy", pen["seed_offset"] + seed, collect_monitor=True, monitor_beta=float(pen["beta"]))
         for env in cfg["envs"]
         for seed in range(pen["seeds"])
     ]

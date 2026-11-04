@@ -46,6 +46,10 @@ def test_smoke_pipeline(tmp_path):
     collect(cfg, out, penalty_runs, prefix="penalty_")
     penalty = pd.read_csv(out / "penalty_episodes.csv.gz")
     assert {"monitor_score", "flagged"} <= set(penalty.columns)
+    # Penalized runs are rolled out for monitor features too, on layouts disjoint from the main runs'.
+    penalty_monitor = pd.read_csv(out / "penalty_monitor_dataset.csv.gz")
+    main_monitor = pd.read_csv(out / "monitor_dataset.csv.gz")
+    assert set(penalty_monitor.layout_seed).isdisjoint(main_monitor.layout_seed)
 
     # Results are tied to the code and settings that produced them.
     assert verify(cfg, out) == []
@@ -55,7 +59,10 @@ def test_smoke_pipeline(tmp_path):
     assert verify(analysis_only, out) == []
 
     paper = tmp_path / "paper"
-    numbers = build(cfg, out, paper)
+    readme = tmp_path / "README.md"
+    readme.write_text("# Title\n<!-- results:begin -->\n<!-- results:end -->\n", encoding="utf-8")
+    numbers = build(cfg, out, paper, readme)
+    assert "| ProxyFarming | Proxy PPO |" in readme.read_text(encoding="utf-8")
     for name in ("tasks", "training_curves", "dose_response", "monitors", "monitor_penalty"):
         assert (paper / "figures" / f"{name}.pdf").exists()
     for name in ("table_tasks", "table_main", "table_monitors", "table_penalty", "numbers"):

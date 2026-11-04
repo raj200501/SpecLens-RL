@@ -16,7 +16,9 @@ CHANNEL_NAMES = {"behavior": "behavior", "task": "task", "privileged": "privileg
 
 
 def fmt(value: float, digits: int = 2) -> str:
-    return "--" if pd.isna(value) else f"{value:.{digits}f}"
+    if pd.isna(value):
+        return "--"
+    return f"{value:.{digits}f}".replace(f"-{0:.{digits}f}", f"{0:.{digits}f}")  # no "-0.00"
 
 
 def fmt_ci(row: pd.Series, metric: str, digits: int = 2) -> str:
@@ -89,21 +91,27 @@ def _cell(value) -> str:
     return str(value)
 
 
-def sweep_table(summary: pd.DataFrame, path: Path) -> None:
-    """Dose-response: ID hack and success rates per channel scale."""
+def sweep_table(summary: pd.DataFrame, optimal: pd.DataFrame, path: Path) -> None:
+    """Dose-response: ID hack and success rates per channel scale, for Proxy PPO and the exact proxy optimum."""
     data = summary[summary.split == "id"]
     scales = sorted(data.channel_scale.unique())
     header = " & ".join(f"$\\lambda={s:g}$" for s in scales)
     lines = [
-        f"\\begin{{tabular}}{{@{{}}ll{'c' * len(scales)}@{{}}}}",
+        f"\\begin{{tabular}}{{@{{}}lll{'c' * len(scales)}@{{}}}}",
         "\\toprule",
-        f"Task & Metric & {header} \\\\",
+        f"Task & Metric & Policy & {header} \\\\",
         "\\midrule",
     ]
     for env in envs_in(data):
         for metric, label in (("hack", "hack rate"), ("success", "success")):
-            cells = [fmt(data[(data.env == env) & (data.channel_scale == s)].iloc[0][metric]) for s in scales]
-            lines.append(f"{env if metric == 'hack' else ''} & {label} & " + " & ".join(cells) + " \\\\")
+            for name, source in (("Proxy PPO", data), ("proxy-optimal", optimal)):
+                part = source[source.env == env]
+                cells = [fmt(part[part.channel_scale == s].iloc[0][metric]) for s in scales]
+                task = env if (metric, name) == ("hack", "Proxy PPO") else ""
+                metric_label = label if name == "Proxy PPO" else ""
+                lines.append(f"{task} & {metric_label} & {name} & " + " & ".join(cells) + " \\\\")
+        if env != envs_in(data)[-1]:
+            lines.append("\\midrule")
     lines += ["\\bottomrule", "\\end{tabular}"]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -155,13 +163,13 @@ def monitor_table(results: pd.DataFrame, path: Path, model: str = "logistic", ta
         for i, channel in enumerate(CHANNEL_NAMES if not part.empty else ()):
             row = part[part.channel == channel].iloc[0]
             cells = [
-                fmt_ci(row, "auc"),
-                fmt(row.within_snapshot_auc),
-                fmt_ci(row, "identity_auc") if i == 0 else "",
-                fmt_ci(row, "selected_feature_auc"),
-                fmt_ci(row, "gain_over_identity"),
-                fmt(row.ood_auc),
-                fmt(row.late_auc),
+                fmt_ci(row, "auc", 3),
+                fmt(row.within_snapshot_auc, 3),
+                fmt_ci(row, "identity_auc", 3) if i == 0 else "",
+                fmt_ci(row, "selected_feature_auc", 3),
+                fmt_ci(row, "gain_over_identity", 3),
+                fmt(row.ood_auc, 3),
+                fmt(row.late_auc, 3),
             ]
             lines.append(
                 f"{f'{env} ({rate})' if i == 0 else ''} & {CHANNEL_NAMES[channel]} & " + " & ".join(cells) + " \\\\"
@@ -201,3 +209,49 @@ def penalty_table(summary: pd.DataFrame, channel: str, path: Path) -> None:
         lines.append(f"{env} & " + " & ".join(fmt_ci(row, m) for m in metrics) + " \\\\")
     lines += ["\\bottomrule", "\\end{tabular}"]
     path.write_text(f"% {channel}-channel monitor\n" + "\n".join(lines) + "\n", encoding="utf-8")
+
+
+FEATURE_NAMES = {
+    "length_ratio": "episode length / step limit",
+    "frac_up": "fraction of up actions",
+    "frac_down": "fraction of down actions",
+    "frac_left": "fraction of left actions",
+    "frac_right": "fraction of right actions",
+    "frac_interact": "fraction of interact actions",
+    "action_entropy": "action entropy",
+    "repeat_action_frac": "repeated actions",
+    "reversal_frac": "move reversals",
+    "stay_frac": "steps without moving",
+    "longest_stay_ratio": "longest stay / length",
+    "unique_cell_ratio": "distinct cells visited",
+    "max_cell_share": "share of time on one cell",
+    "net_displacement": "net displacement",
+    "path_efficiency": "path efficiency",
+}
+
+
+def evasion_table(shifts: pd.DataFrame, path: Path, top: int = 3) -> None:
+    """The features that moved the monitor's score most between unpenalized and penalized hacks."""
+    lines = [
+        "\\begin{tabular}{@{}llccc@{}}",
+        "\\toprule",
+        "& & \\multicolumn{2}{c}{Mean over hacking episodes} & Share of the \\\\",
+        "\\cmidrule(lr){3-4}",
+        "Task & Behavior feature & unpenalized & penalized & change in logit \\\\",
+        "\\midrule",
+    ]
+    envs = envs_in(shifts)
+    for env in envs:
+        part = shifts[shifts.env == env]
+        first = part.iloc[0]
+        label = f"{env} ({first.n_after} hacks, {first.runs_after} run{'s' if first.runs_after > 1 else ''})"
+        for i, (_, row) in enumerate(
+            part.reindex(part.contribution.abs().sort_values(ascending=False).index).head(top).iterrows()
+        ):
+            share = f"{100 * row.share:.0f}\\%"
+            name = FEATURE_NAMES.get(row.feature, _escape(row.feature))
+            lines.append(f"{label if i == 0 else ''} & {name} & {fmt(row.before)} & {fmt(row.after)} & {share} \\\\")
+        if env != envs[-1]:
+            lines.append("\\midrule")
+    lines += ["\\bottomrule", "\\end{tabular}"]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")

@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from speclens.analysis.penalty import baseline_recall, penalized_recall, summarize_penalty
+from speclens.analysis.penalty import baseline_recall, evasion, monitor_scores, penalized_recall, summarize_penalty
 from speclens.analysis.stats import mean_ci, summarize
 from speclens.monitors.features import FEATURES
-from speclens.report import dominance, emergence
+from speclens.monitors.penalty import LinearMonitor
+from speclens.report import README_BEGIN, README_END, dominance, emergence, update_readme
 
 
 def test_mean_ci_is_a_t_interval_with_valid_coverage():
@@ -101,3 +102,29 @@ def test_penalty_recalls():
     summary = summarize_penalty(episodes, pd.DataFrame(rows), "behavior").iloc[0]
     assert summary.undetected_hack == pytest.approx((1 / 3 + 1 / 3) / 2)
     assert summary.recall_before == 1.0 and summary.recall_after == pytest.approx(0.25)
+
+
+def test_evasion_decomposes_the_change_in_monitor_logit_exactly():
+    rng = np.random.default_rng(0)
+    names = ("a", "b", "c")
+    monitor = LinearMonitor(names, (0.5, 1.0, -2.0), (2.0, 0.5, 1.0), (1.5, -0.7, 0.3), -0.2)
+    before = pd.DataFrame(rng.normal(size=(50, 3)), columns=names)
+    after = pd.DataFrame(rng.normal(loc=[-1.0, 0.5, 0.0], size=(40, 3)), columns=names)
+    shift = evasion(before, after, monitor)
+
+    def mean_logit(data):
+        p = monitor_scores(data, monitor)
+        return np.log(p / (1 - p)).mean()
+
+    assert shift.contribution.sum() == pytest.approx(mean_logit(after) - mean_logit(before))
+    assert monitor_scores(before.iloc[:1], monitor)[0] == pytest.approx(monitor.score(before.iloc[0].to_dict()))
+
+
+def test_update_readme_replaces_only_the_marked_section(tmp_path):
+    readme = tmp_path / "README.md"
+    readme.write_text(f"intro\n{README_BEGIN}\nold table\n{README_END}\noutro\n", encoding="utf-8")
+    update_readme(readme, "new table")
+    assert readme.read_text(encoding="utf-8") == f"intro\n{README_BEGIN}\nnew table\n{README_END}\noutro\n"
+    readme.write_text("no markers", encoding="utf-8")
+    with pytest.raises(ValueError):
+        update_readme(readme, "new table")

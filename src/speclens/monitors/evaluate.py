@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, roc_auc_score
 from sklearn.pipeline import make_pipeline
@@ -23,10 +23,17 @@ MIN_MINORITY_FRAC = 0.05
 
 
 def build_model(name: str):
+    """A fresh monitor model.
+
+    The logistic regression is solved to a tight tolerance so that its fit, and
+    every AUC computed from it, does not depend on the optimizer's path (which
+    can differ in the last bits between machines). The boosted trees are
+    depth-2 histogram gradient boosting with a fixed number of rounds.
+    """
     if name == "logistic":
-        return make_pipeline(StandardScaler(), LogisticRegression(max_iter=5000, C=1.0))
+        return make_pipeline(StandardScaler(), LogisticRegression(max_iter=10_000, tol=1e-8, C=1.0))
     if name == "boosting":
-        return GradientBoostingClassifier(n_estimators=100, max_depth=2, random_state=0)
+        return HistGradientBoostingClassifier(max_depth=2, max_iter=100, early_stopping=False, random_state=0)
     raise ValueError(f"unknown monitor model {name!r}")
 
 
