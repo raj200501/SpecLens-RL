@@ -10,6 +10,8 @@ from speclens.monitors.evaluate import build_model
 from speclens.monitors.features import channel_features
 from speclens.monitors.penalty import LinearMonitor
 
+MIN_RECALL_HACKS = 50  # a run's recall on fewer hacking episodes than this is not reported
+
 PENALTY_METRICS = [
     "hack", "harmful_hack", "flagged", "undetected_hack", "undetected_harmful_hack",
     "success", "true_return", "proxy_return",
@@ -41,20 +43,32 @@ def baseline_recall(monitor_data: pd.DataFrame, channel: str, threshold: float =
     return pd.DataFrame(rows, columns=["env", "seed", "recall"])
 
 
-def penalized_recall(episodes: pd.DataFrame) -> pd.DataFrame:
-    """Per-run recall of the training monitor on hacking episodes of penalized policies."""
+def penalized_recall(episodes: pd.DataFrame, min_hacks: int = MIN_RECALL_HACKS) -> pd.DataFrame:
+    """Per-run recall of the training monitor on hacking episodes of penalized policies.
+
+    Runs with fewer than ``min_hacks`` hacking ID episodes are left out: a
+    penalized run that has (almost) stopped hacking has no recall worth
+    reporting, and averaging it in would let a handful of incidental hacks
+    stand for a run.
+    """
     hacks = episodes[(episodes.split == "id") & (episodes.hack == 1)]
-    return hacks.groupby(["env", "seed"], as_index=False).flagged.mean().rename(columns={"flagged": "recall"})
+    recall = hacks.groupby(["env", "seed"], as_index=False).agg(recall=("flagged", "mean"), n=("flagged", "size"))
+    return recall[recall.n >= min_hacks][["env", "seed", "recall"]]
 
 
-def summarize_penalty(episodes: pd.DataFrame, monitor_data: pd.DataFrame, channel: str) -> pd.DataFrame:
+def summarize_penalty(
+    episodes: pd.DataFrame, monitor_data: pd.DataFrame, channel: str, min_hacks: int = MIN_RECALL_HACKS
+) -> pd.DataFrame:
     """One row per task: outcomes of penalized agents and monitor recall before/after."""
     id_episodes = episodes[episodes.split == "id"].assign(
         undetected_hack=lambda d: d.hack * (1 - d.flagged),
         undetected_harmful_hack=lambda d: d.harmful_hack * (1 - d.flagged),
     )
     summary = summarize(id_episodes, ["env"], PENALTY_METRICS)
-    recalls = {"recall_after": penalized_recall(episodes), "recall_before": baseline_recall(monitor_data, channel)}
+    recalls = {
+        "recall_after": penalized_recall(episodes, min_hacks),
+        "recall_before": baseline_recall(monitor_data, channel),
+    }
     for name, recall in recalls.items():
         stats = summarize(recall, ["env"], ["recall"]).rename(
             columns={"recall": name, "recall_lo": f"{name}_lo", "recall_hi": f"{name}_hi", "n_runs": f"{name}_runs"}
@@ -75,13 +89,23 @@ def evasion(before: pd.DataFrame, after: pd.DataFrame, monitor: LinearMonitor) -
     The monitor's logit is linear in standardized features, so the change in
     its mean logit from ``before`` (hacks of unpenalized agents) to ``after``
     (hacks of agents trained against the monitor) is exactly the sum over
-    features of ``coef * (change in mean) / scale``. One row per feature, with
-    the raw feature means and that feature's share of the change.
+    features of ``coef * (change in mean) / scale``, where ``scale`` is the
+    feature's standard deviation in the monitor's training data. One row per
+    feature, with the raw feature means.
     """
     rows = []
     for name, scale, coef in zip(monitor.features, monitor.scale, monitor.coef):
         b, a = float(before[name].mean()), float(after[name].mean())
-        rows.append({"feature": name, "coef": coef, "before": b, "after": a, "contribution": coef * (a - b) / scale})
+        rows.append(
+            {
+                "feature": name,
+                "coef": coef,
+                "scale": scale,
+                "before": b,
+                "after": a,
+                "contribution": coef * (a - b) / scale,
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -121,6 +145,6 @@ def evasion_summary(
                 share=shift.contribution / shift.contribution.sum(),
             )
         )
-    columns = ["env", "feature", "coef", "before", "after", "contribution", "share", "n_before", "n_after",
+    columns = ["env", "feature", "coef", "scale", "before", "after", "contribution", "share", "n_before", "n_after",
                "runs_after", "recall_before", "recall_after"]  # fmt: skip
     return pd.concat(parts, ignore_index=True)[columns] if parts else pd.DataFrame(columns=columns)

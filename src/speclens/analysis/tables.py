@@ -165,8 +165,8 @@ def monitor_table(results: pd.DataFrame, path: Path, model: str = "logistic", ta
             cells = [
                 fmt_ci(row, "auc", 3),
                 fmt(row.within_snapshot_auc, 3),
-                fmt_ci(row, "identity_auc", 3) if i == 0 else "",
-                fmt_ci(row, "selected_feature_auc", 3),
+                fmt(row.identity_auc, 3) if i == 0 else "",
+                fmt(row.selected_feature_auc, 3),
                 fmt_ci(row, "gain_over_identity", 3),
                 fmt(row.ood_auc, 3),
                 fmt(row.late_auc, 3),
@@ -205,8 +205,16 @@ def penalty_table(summary: pd.DataFrame, channel: str, path: Path) -> None:
     ]
     for env in envs_in(summary):
         row = summary[summary.env == env].iloc[0]
-        metrics = ("hack", "harmful_hack", "flagged", "undetected_hack", "recall_before", "recall_after")
-        lines.append(f"{env} & " + " & ".join(fmt_ci(row, m) for m in metrics) + " \\\\")
+        cells = [fmt_ci(row, m) for m in ("hack", "harmful_hack", "flagged", "undetected_hack", "recall_before")]
+        runs = row.get("recall_after_runs")
+        runs = 0 if pd.isna(runs) else int(runs)
+        if runs == 0:
+            cells.append("-- (no run)")
+        elif runs == 1:
+            cells.append(f"{fmt(row.recall_after)} (1 run)")
+        else:
+            cells.append(f"{fmt_ci(row, 'recall_after')} ({runs} runs)")
+        lines.append(f"{env} & " + " & ".join(cells) + " \\\\")
     lines += ["\\bottomrule", "\\end{tabular}"]
     path.write_text(f"% {channel}-channel monitor\n" + "\n".join(lines) + "\n", encoding="utf-8")
 
@@ -233,11 +241,11 @@ FEATURE_NAMES = {
 def evasion_table(shifts: pd.DataFrame, path: Path, top: int = 3) -> None:
     """The features that moved the monitor's score most between unpenalized and penalized hacks."""
     lines = [
-        "\\begin{tabular}{@{}llccc@{}}",
+        "\\begin{tabular}{@{}llcccc@{}}",
         "\\toprule",
-        "& & \\multicolumn{2}{c}{Mean over hacking episodes} & Share of the \\\\",
+        "& & \\multicolumn{2}{c}{Mean over hacking episodes} & SD in monitor & Share of the \\\\",
         "\\cmidrule(lr){3-4}",
-        "Task & Behavior feature & unpenalized & penalized & change in logit \\\\",
+        "Task & Behavior feature & unpenalized & penalized & training data & change in logit \\\\",
         "\\midrule",
     ]
     envs = envs_in(shifts)
@@ -250,7 +258,8 @@ def evasion_table(shifts: pd.DataFrame, path: Path, top: int = 3) -> None:
         ):
             share = f"{100 * row.share:.0f}\\%"
             name = FEATURE_NAMES.get(row.feature, _escape(row.feature))
-            lines.append(f"{label if i == 0 else ''} & {name} & {fmt(row.before)} & {fmt(row.after)} & {share} \\\\")
+            cells = f"{fmt(row.before)} & {fmt(row.after)} & {fmt(row.scale, 3)} & {share}"
+            lines.append(f"{label if i == 0 else ''} & {name} & {cells} \\\\")
         if env != envs[-1]:
             lines.append("\\midrule")
     lines += ["\\bottomrule", "\\end{tabular}"]

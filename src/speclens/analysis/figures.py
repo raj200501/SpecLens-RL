@@ -95,7 +95,11 @@ def _draw_grid(ax, rows: list[str]) -> None:
 
 
 def curves_figure(curves: pd.DataFrame, path: Path) -> None:
-    """Proxy return, true return and hack rate over training for both methods."""
+    """Proxy return, true return and hack rate over training for both methods.
+
+    Thin lines are individual Proxy PPO runs, which in ProxyFarming switch to
+    hacking at different times; the mean alone would hide that.
+    """
     apply_style()
     data = curves[curves.channel_scale == 1.0]
     summary = summarize(data, ["env", "method", "env_steps"], ["proxy_return", "true_return", "hack"])
@@ -105,6 +109,10 @@ def curves_figure(curves: pd.DataFrame, path: Path) -> None:
     for col, env in enumerate(envs):
         for row, (metric, label) in enumerate(panels):
             ax = axes[row, col]
+            proxy_runs = data[(data.env == env) & (data.method == "proxy")]
+            for _, run in proxy_runs.groupby("seed"):
+                run = run.sort_values("env_steps")
+                ax.plot(run.env_steps / 1e6, run[metric], color=METHOD_COLORS["proxy"], linewidth=0.5, alpha=0.35)
             for method in ("oracle", "proxy"):
                 part = summary[(summary.env == env) & (summary.method == method)].sort_values("env_steps")
                 x = part.env_steps / 1e6
@@ -182,25 +190,23 @@ def dose_response_figure(episodes: pd.DataFrame, optimal: pd.DataFrame, sweep_se
 
 
 def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -> None:
-    """Held-out hack-monitor AUC per channel against the baselines it has to beat."""
+    """Held-out hack-monitor AUC per channel against the baselines it has to beat.
+
+    A dot plot on a zoomed axis: every monitor here scores far above chance, and
+    what matters is the gap to the baselines. Each channel's held-out AUC (filled,
+    with its 95% interval) is joined to its within-snapshot AUC (open).
+    """
     apply_style()
     data = results[(results.target == "hack") & (results.model == model)]
     envs = envs_in(results)
-    fig, ax = plt.subplots(figsize=(6.6, 2.7))
-    width = 0.22
+    fig, ax = plt.subplots(figsize=(6.6, 2.9))
+    offsets = dict(zip(CHANNEL_COLORS, (-0.27, 0.0, 0.27)))
     for e, env in enumerate(envs):
         part = data[data.env == env]
         if part.empty:
             status = results[(results.env == env) & (results.target == "hack")].iloc[0]
-            ax.text(
-                e,
-                0.75,
-                f"labels {status.label_status}\n({status.positive_rate:.0%} hacks)",
-                ha="center",
-                va="center",
-                fontsize=7,
-                color=INK_SECONDARY,
-            )
+            ax.text(e, 0.95, f"labels {status.label_status}\n({status.positive_rate:.0%} hacks)", ha="center",
+                    va="center", fontsize=7, color=INK_SECONDARY)  # fmt: skip
             continue
         ax.hlines(
             part.identity_auc.iloc[0],
@@ -210,52 +216,58 @@ def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -
             linewidth=1.0,
             linestyle=(0, (4, 3)),
             label="policy-identity baseline",
-            zorder=4,
+            zorder=2,
         )
-        for c, channel in enumerate(CHANNEL_COLORS):
+        for channel, dx in offsets.items():
             row = part[part.channel == channel].iloc[0]
-            x = e + (c - 1) * (width + 0.04)
-            ax.bar(x, row.auc - 0.5, bottom=0.5, width=width, color=CHANNEL_COLORS[channel], label=f"{channel} channel")
-            ax.errorbar(x, row.auc, yerr=[[row.auc - row.auc_lo], [row.auc_hi - row.auc]], color=INK, linewidth=0.8)
-            ax.scatter(
+            x, color = e + dx, CHANNEL_COLORS[channel]
+            ax.vlines(x, row.within_snapshot_auc, row.auc, color=color, linewidth=1.0, alpha=0.6, zorder=3)
+            ax.errorbar(
                 x,
-                row.within_snapshot_auc,
-                marker="o",
-                s=18,
-                facecolor="white",
-                edgecolor=INK,
-                linewidth=0.9,
+                row.auc,
+                yerr=[[row.auc - row.auc_lo], [row.auc_hi - row.auc]],
+                fmt="o",
+                color=color,
+                markersize=6,
+                markeredgecolor="white",
+                markeredgewidth=0.8,
+                elinewidth=1.0,
+                capsize=0,
                 zorder=5,
-                label="within-snapshot AUC",
+                label=f"{channel} channel",
             )
-            ax.scatter(x, row.selected_feature_auc, marker="D", s=14, color=INK, zorder=5, label="best single feature")
+            ax.plot(x, row.within_snapshot_auc, "o", markersize=5.5, markerfacecolor="white", markeredgecolor=color,
+                    markeredgewidth=1.2, zorder=5, label="within one policy snapshot")  # fmt: skip
+            ax.plot(x + 0.09, row.selected_feature_auc, "D", markersize=3.5, color=INK, zorder=6,
+                    label="best single feature")  # fmt: skip
     ax.set_xticks(range(len(envs)), envs)
     ax.set_xlim(-0.5, len(envs) - 0.5)
     shown = data[["auc_lo", "selected_feature_auc", "within_snapshot_auc", "identity_auc"]]
     lowest = float(shown.min().min()) if not data.empty else 0.5
-    ax.set_ylim(min(0.5, lowest - 0.03), 1.01)
-    ax.axhline(0.5, color=INK_SECONDARY, linewidth=0.6)
+    ax.set_ylim(max(0.5, lowest - 0.02), 1.005)
     ax.set_ylabel("Hack-monitor ROC-AUC")
     ax.grid(axis="x", visible=False)
     handles = dict(zip(*reversed(ax.get_legend_handles_labels())))
     order = [f"{c} channel" for c in CHANNEL_COLORS]
-    order += ["within-snapshot AUC", "best single feature", "policy-identity baseline"]
+    order += ["within one policy snapshot", "best single feature", "policy-identity baseline"]
     order = [label for label in order if label in handles]
-    ax.legend(
+    legend = ax.legend(
         [handles[k] for k in order],
         order,
         loc="upper center",
         ncol=3,
-        bbox_to_anchor=(0.5, 1.32),
+        bbox_to_anchor=(0.5, 1.3),
         handlelength=1.4,
         columnspacing=1.2,
     )
+    if "within one policy snapshot" in order:  # the open marker's legend entry stands for every channel
+        legend.legend_handles[order.index("within one policy snapshot")].set_markeredgecolor(INK_SECONDARY)
     fig.tight_layout()
     save(fig, path)
 
 
 def penalty_figure(penalty_curves: pd.DataFrame, curves: pd.DataFrame, path: Path) -> None:
-    """Hack rate and monitor-flag rate over training for agents penalized by the monitor."""
+    """Hack rate and monitor-flag rate over training for agents penalized by the monitor (thin lines: runs)."""
     apply_style()
     pen = summarize(penalty_curves, ["env", "env_steps"], ["hack", "flagged"])
     base = summarize(curves[(curves.method == "proxy") & (curves.channel_scale == 1.0)], ["env", "env_steps"], ["hack"])
@@ -276,6 +288,9 @@ def penalty_figure(penalty_curves: pd.DataFrame, curves: pd.DataFrame, path: Pat
             linestyle=(0, (4, 3)),
             label="Hack rate without monitor penalty",
         )
+        for _, run in penalty_curves[penalty_curves.env == env].groupby("seed"):
+            run = run.sort_values("env_steps")
+            ax.plot(run.env_steps / 1e6, run.hack, color=METHOD_COLORS["proxy"], linewidth=0.5, alpha=0.35)
         part = pen[pen.env == env].sort_values("env_steps")
         for metric, label, color, style in series:
             x = part.env_steps / 1e6

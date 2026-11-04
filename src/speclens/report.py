@@ -21,7 +21,7 @@ import pandas as pd
 from speclens.analysis import figures, tables
 from speclens.analysis.monitoring import analyze
 from speclens.analysis.optimal import optimal_behavior
-from speclens.analysis.penalty import evasion_summary, summarize_penalty
+from speclens.analysis.penalty import MIN_RECALL_HACKS, evasion_summary, summarize_penalty
 from speclens.analysis.stats import per_run_means, summarize
 from speclens.analysis.style import envs_in
 from speclens.experiment import EVAL_SEEDS, load_config, monitor_path
@@ -56,9 +56,20 @@ def emergence(curves: pd.DataFrame, threshold: float = 0.5) -> pd.DataFrame:
         before = run[run.env_steps < onset] if len(crossed) else run
         rows.append(
             {"env": env, "seed": seed, "onset": onset, "peak_success_before": before.success.max(),
-             "final_hack": run.hack.iloc[-1], "final_success": run.success.iloc[-1]}
+             "transition": transition_steps(run), "final_hack": run.hack.iloc[-1],
+             "final_success": run.success.iloc[-1]}
         )  # fmt: skip
     return pd.DataFrame(rows)
+
+
+def transition_steps(run: pd.DataFrame, low: float = 0.1, high: float = 0.75) -> float:
+    """Steps from the last snapshot with hack rate below ``low`` to the first one above ``high`` (NaN if never)."""
+    above = run[run.hack > high]
+    if above.empty:
+        return float("nan")
+    reached = above.env_steps.iloc[0]
+    below = run[(run.env_steps < reached) & (run.hack < low)]
+    return float(reached - (below.env_steps.iloc[-1] if len(below) else run.env_steps.iloc[0]))
 
 
 def build(cfg: dict, results: Path, paper: Path, readme: Path | None = None) -> dict[str, str]:
@@ -111,6 +122,8 @@ def build(cfg: dict, results: Path, paper: Path, readme: Path | None = None) -> 
     numbers.update(_sweep_range_numbers(sweep))
     numbers.update(_emergence_numbers(onsets, main_curves))
     numbers.update(_optimal_numbers(optimal_summary))
+    numbers["n-runs-all"] = str(len(runs))
+    numbers["cpu-hours-all"] = f"{runs.total_sec.sum() / 3600:.0f}"
     penalty = None
     if (results / "penalty_episodes.csv.gz").exists():
         channel = cfg["monitor_penalty"]["channel"]
@@ -119,7 +132,10 @@ def build(cfg: dict, results: Path, paper: Path, readme: Path | None = None) -> 
         penalty.to_csv(results / "summary_penalty.csv", index=False, float_format="%.4f")
         figures.penalty_figure(pd.read_csv(results / "penalty_curves.csv"), curves, fig_dir / "monitor_penalty")
         tables.penalty_table(penalty, channel, gen_dir / "table_penalty.tex")
-        numbers.update(_penalty_numbers(cfg, penalty, pd.read_csv(results / "penalty_runs.csv")))
+        penalty_runs = pd.read_csv(results / "penalty_runs.csv")
+        numbers.update(_penalty_numbers(cfg, penalty, penalty_runs, penalty_episodes))
+        numbers["n-runs-all"] = str(len(runs) + len(penalty_runs))
+        numbers["cpu-hours-all"] = f"{(runs.total_sec.sum() + penalty_runs.total_sec.sum()) / 3600:.0f}"
         monitors = {env: LinearMonitor.load(monitor_path(results, env)) for env in penalty.env}
         penalty_monitor_data = pd.read_csv(results / "penalty_monitor_dataset.csv.gz")
         shifts = evasion_summary(monitor_data, penalty_monitor_data, monitors)
@@ -129,12 +145,17 @@ def build(cfg: dict, results: Path, paper: Path, readme: Path | None = None) -> 
     tables.write_numbers(numbers.items(), gen_dir / "numbers.tex")
     (results / "numbers.json").write_text(json.dumps(numbers, indent=2) + "\n", encoding="utf-8")
     if readme is not None:
-        update_readme(readme, readme_results(main_summary, sweep_summary, optimal_summary, monitor_results, penalty))
+        compute = f"Compute: {numbers['n-runs-all']} PPO runs, {numbers['cpu-hours-all']} CPU-hours."
+        block = readme_results(main_summary, sweep_summary, optimal_summary, monitor_results, penalty, compute)
+        update_readme(readme, block)
     return numbers
 
 
 def _pct(value: float) -> str:
-    return "--" if pd.isna(value) else f"{100 * value:.0f}"
+    if pd.isna(value):
+        return "--"
+    text = f"{100 * value:.0f}"
+    return "0" if text == "-0" else text
 
 
 def _num(value: float, digits: int = 2) -> str:
@@ -205,6 +226,14 @@ def _result_numbers(cfg, main_summary, dom, sweep_summary, monitor_results, runs
         yield f"{key}-late", _auc(r.late_auc)
     for _, r in monitor_results.drop_duplicates(["env", "target"]).iterrows():
         yield f"mon-{r.env}-{r.target}-rate", _pct(r.positive_rate)
+    behavior = monitor_results[
+        (monitor_results.target == "hack")
+        & (monitor_results.channel == "behavior")
+        & (monitor_results.model == "logistic")
+    ]
+    for metric, column in (("auc", "auc"), ("identity", "identity_auc"), ("within", "within_snapshot_auc")):
+        yield f"mon-behavior-{metric}-min", _auc(behavior[column].min())
+        yield f"mon-behavior-{metric}-max", _auc(behavior[column].max())
 
 
 def _steps(value: float) -> str:
@@ -229,6 +258,7 @@ def _emergence_numbers(onsets, curves):
         yield f"dyn-{env}-runs", str(len(part))
         yield f"dyn-{env}-switched", str(len(switched))
         yield f"dyn-{env}-unswitched-final-hack", _pct(part[part.onset.isna()].final_hack.max())
+        yield f"dyn-{env}-transition-median", _steps(part.transition.median())
         yield f"dyn-{env}-onset-median", _steps(switched.onset.median())
         yield f"dyn-{env}-onset-min", _steps(switched.onset.min())
         yield f"dyn-{env}-onset-max", _steps(switched.onset.max())
@@ -242,10 +272,20 @@ def _optimal_numbers(summary):
         yield f"opt-{r.env}-{r.channel_scale:g}-success", _pct(r.success)
 
 
-def _penalty_numbers(cfg, penalty, runs):
+def _penalty_numbers(cfg, penalty, runs, episodes):
     yield "pen-seeds", str(cfg["monitor_penalty"]["seeds"])
     yield "pen-beta", f"{cfg['monitor_penalty']['beta']:g}"
+    yield "pen-n-runs", str(len(runs))
     yield "pen-cpu-hours", f"{runs.total_sec.sum() / 3600:.1f}"
+    yield "pen-min-hacks", str(MIN_RECALL_HACKS)
+    id_episodes = episodes[episodes.split == "id"]
+    for env, part in id_episodes.groupby("env"):
+        per_run = part.groupby("seed").hack.mean()
+        worst = per_run.idxmax()
+        worst_hacks = part[(part.seed == worst) & (part.hack == 1)]
+        yield f"pen-{env}-runs-hacking", str(int((per_run >= 0.5).sum()))
+        yield f"pen-{env}-worst-run-hack", _pct(per_run.max())
+        yield f"pen-{env}-worst-run-recall", _pct(worst_hacks.flagged.mean()) if len(worst_hacks) else "--"
     metrics = ("hack", "harmful_hack", "flagged", "undetected_hack", "undetected_harmful_hack", "success",
                "recall_before", "recall_after")  # fmt: skip
     for _, r in penalty.iterrows():
@@ -265,6 +305,9 @@ def _evasion_numbers(shifts):
             key = f"pen-{env}-{r.feature.replace('_', '-')}"
             yield f"{key}-before", _num(r.before)
             yield f"{key}-after", _num(r.after)
+            yield f"{key}-before-pct", _pct(r.before)
+            yield f"{key}-after-pct", _pct(r.after)
+            yield f"{key}-sd", _num(r.scale, 3)
             yield f"{key}-share", _pct(r.share)
 
 
@@ -276,7 +319,7 @@ def _pct_ci(row: pd.Series, metric: str) -> str:
     return f"{_pct(row[metric])}% ({_pct(row[metric + '_lo'])}–{_pct(row[metric + '_hi'])})"
 
 
-def readme_results(main_summary, sweep_summary, optimal_summary, monitor_results, penalty) -> str:
+def readme_results(main_summary, sweep_summary, optimal_summary, monitor_results, penalty, compute="") -> str:
     """The README's results tables, generated so that they cannot drift from ``results/``."""
     out = [
         "*Generated by `python -m speclens.report` from `results/`; CI fails if it is out of date.*",
@@ -336,10 +379,17 @@ def readme_results(main_summary, sweep_summary, optimal_summary, monitor_results
         ]
         for env in envs_in(penalty):
             r = penalty[penalty.env == env].iloc[0]
+            runs = 0 if pd.isna(r.recall_after_runs) else int(r.recall_after_runs)
+            if runs == 0:
+                after = "no run hacks enough to measure"
+            else:
+                after = f"{_pct(r.recall_after)}%" + ("" if runs == r.n_runs else f" ({runs} of {r.n_runs} runs hack)")
             out.append(
                 f"| {env} | {_pct_ci(r, 'hack')} | {_pct(r.undetected_hack)}% of episodes "
-                f"| {_pct(r.recall_before)}% → {_pct(r.recall_after)}% |"
+                f"| {_pct(r.recall_before)}% → {after} |"
             )
+    if compute:
+        out += ["", compute]
     return "\n".join(out)
 
 

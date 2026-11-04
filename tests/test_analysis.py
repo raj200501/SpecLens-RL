@@ -6,7 +6,7 @@ from speclens.analysis.penalty import baseline_recall, evasion, monitor_scores, 
 from speclens.analysis.stats import mean_ci, summarize
 from speclens.monitors.features import FEATURES
 from speclens.monitors.penalty import LinearMonitor
-from speclens.report import README_BEGIN, README_END, dominance, emergence, update_readme
+from speclens.report import README_BEGIN, README_END, dominance, emergence, transition_steps, update_readme
 
 
 def test_mean_ci_is_a_t_interval_with_valid_coverage():
@@ -52,6 +52,9 @@ def test_emergence_onset_and_success_before():
     runs = emergence(curves).set_index("seed")
     assert runs.loc[0, "onset"] == 3 and runs.loc[0, "peak_success_before"] == pytest.approx(0.9)
     assert np.isnan(runs.loc[1, "onset"]) and runs.loc[1, "peak_success_before"] == pytest.approx(0.8)
+    # Hack rate 0.0, 0.2, 0.6, 0.9: last snapshot below 10% is step 1, first above 75% is step 4.
+    assert runs.loc[0, "transition"] == 3 and np.isnan(runs.loc[1, "transition"])
+    assert transition_steps(curves[curves.seed == 0].assign(hack=[0.2, 0.3, 0.8, 0.9])) == 2  # never below 10%
 
 
 def test_penalty_recalls():
@@ -68,8 +71,9 @@ def test_penalty_recalls():
             "proxy_return": 0.0,
         }
     )
-    recall = penalized_recall(episodes).set_index("seed").recall
+    recall = penalized_recall(episodes, min_hacks=1).set_index("seed").recall
     assert recall.to_dict() == {0: 0.5, 1: 0.0}
+    assert penalized_recall(episodes, min_hacks=2).seed.tolist() == [0]  # seed 1 has a single hack
 
     # The unpenalized baseline uses a monitor fitted on other seeds only; a separable
     # feature gives it perfect recall on the held-out final snapshot.
@@ -99,9 +103,10 @@ def test_penalty_recalls():
     out_of_run = baseline_recall(pd.DataFrame(signature_rows), "behavior")
     assert (out_of_run.recall < 0.5).all()
 
-    summary = summarize_penalty(episodes, pd.DataFrame(rows), "behavior").iloc[0]
+    summary = summarize_penalty(episodes, pd.DataFrame(rows), "behavior", min_hacks=1).iloc[0]
     assert summary.undetected_hack == pytest.approx((1 / 3 + 1 / 3) / 2)
     assert summary.recall_before == 1.0 and summary.recall_after == pytest.approx(0.25)
+    assert np.isnan(summarize_penalty(episodes, pd.DataFrame(rows), "behavior").iloc[0].recall_after)
 
 
 def test_evasion_decomposes_the_change_in_monitor_logit_exactly():
