@@ -31,7 +31,7 @@ jobs:
           ruff format --check src tests
       - name: Test
         run: pytest
-      - name: Committed results come from the current code, and the paper's numbers from them
+      - name: Committed run fingerprints match the current code, and the paper's numbers match the results
         if: hashFiles('results/episodes.csv.gz') != ''
         run: |
           python -m speclens.experiment --config configs/paper.yaml --out results --verify

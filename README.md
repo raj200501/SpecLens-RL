@@ -131,7 +131,7 @@ Each failure below is now guarded by a test or a CI check, or the offending metr
 ```bash
 make install       # exact versions from requirements-lock.txt (Python 3.13, CPU-only PyTorch)
 make test          # unit tests, about a minute
-make verify        # check that the committed results were produced by the current code and config
+make verify        # check that every committed run's fingerprint matches the current code and config
 make report        # figures, tables, numbers and the README results from results/ (a minute or two)
 make paper         # compile paper/main.pdf
 make experiments   # retrain everything (see the compute line under Results); resumable
@@ -144,8 +144,10 @@ configuration and (for the monitor-penalty runs) the monitor that produced it. `
 fails if any run is stale.
 The paper quotes numbers through `\res{key}` macros written by `speclens.report`, which also writes the
 results tables in this README. CI regenerates both and fails if the committed versions differ, or if the
-paper cites a number the report does not produce. Training is deterministic given a seed: retraining all
-15 monitor-penalty runs in a fresh container reproduced every evaluation episode exactly.
+paper cites a number the report does not produce. Training is deterministic given a seed on the same CPU
+instruction set and library versions: retraining all 15 monitor-penalty runs in a fresh container reproduced
+every evaluation episode exactly. On other hardware, expect the same results in distribution rather than bit
+for bit.
 
 ## Using the environments
 

@@ -195,7 +195,9 @@ policies with hacking ones is a common way to build a monitor benchmark, and it
 inflates pooled AUC; a pooled AUC alone says little about whether a monitor
 reads behavior. The relevant number for a monitor deployed on one policy is
 the AUC among the episodes of a single Proxy PPO snapshot, where policy
-identity carries no information. It is
+identity carries no information (snapshots have \res{monitor-layouts} episodes each,
+so this average is noisy, and in \ST{} it comes mostly from early snapshots,
+since final policies tamper on nearly every episode). It is
 \res{mon-SensorTamper-hack-behavior-logistic-within} in \ST{} and
 \res{mon-GemTimeout-hack-behavior-logistic-within} in \GT{}, close to the pooled
 values, but \res{mon-ProxyFarming-hack-behavior-logistic-within} in \PF{}, well

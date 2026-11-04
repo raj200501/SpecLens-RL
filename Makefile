@@ -21,7 +21,7 @@ smoke:  ## the full pipeline at toy scale, into a scratch directory
 experiments:  ## every training run in the paper (about 16 CPU-hours; resumable)
 	$(PYTHON) -m speclens.experiment --config configs/paper.yaml --out results --workers $(WORKERS)
 
-verify:  ## check that committed results were produced by the current code and config
+verify:  ## check that every committed run's fingerprint matches the current code and config
 	$(PYTHON) -m speclens.experiment --config configs/paper.yaml --out results --verify
 
 report:  ## figures, tables, numbers and the README results from results/ (a minute or two)

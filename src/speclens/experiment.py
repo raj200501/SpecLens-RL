@@ -337,7 +337,7 @@ def collect(cfg: dict, out: Path, runs: list[Run] | None = None, prefix: str = "
         "processor": platform.processor() or platform.machine(),
         "cpu_count": os.cpu_count(),
     }
-    (out / "environment.json").write_text(json.dumps(environment, indent=2), encoding="utf-8")
+    (out / f"{prefix}environment.json").write_text(json.dumps(environment, indent=2), encoding="utf-8")
 
 
 CODE_FINGERPRINTS = _code_fingerprints()

@@ -52,12 +52,12 @@ and the \res{pen-n-runs} monitor-penalty runs another \res{pen-cpu-hours}, on a
 single 4-core machine with one core per run. Every training run records a
 fingerprint of the code, configuration and (for the monitor-penalty runs) the
 monitor it was produced with (\texttt{results/runs.csv} and
-\texttt{penalty\_runs.csv}), and continuous integration fails if any committed
-run does not match the current code. Runs also record the commit, and whether
+\texttt{penalty\_runs.csv}), and continuous integration fails if any recorded
+fingerprint does not match the current code. Runs also record the commit, and whether
 \texttt{src/} had uncommitted edits, when they finished; some finished while
 the repository had uncommitted edits to analysis code that no training run
 imports, which the fingerprints confirm. Training is deterministic given a
-seed: when we retrained all \res{pen-n-runs} monitor-penalty runs in a fresh
+seed on the same CPU instruction set and library versions: when we retrained all \res{pen-n-runs} monitor-penalty runs in a fresh
 container to add monitor rollouts, we checked that every evaluation episode was
 reproduced exactly. Every figure and table, and every result and setting cited
 in the text, is rebuilt from the saved results in about two minutes with
