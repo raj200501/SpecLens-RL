@@ -416,7 +416,7 @@ def main() -> None:
     parser.add_argument("--config", default="configs/paper.yaml")
     parser.add_argument("--results", default="results")
     parser.add_argument("--paper", default="paper")
-    parser.add_argument("--readme", default="README.md", help="file whose results section to regenerate ('' for none)")
+    parser.add_argument("--readme", default="", help="file whose results section to regenerate (default: none)")
     args = parser.parse_args()
     readme = Path(args.readme) if args.readme else None
     numbers = build(load_config(args.config), Path(args.results), Path(args.paper), readme)

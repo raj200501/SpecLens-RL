@@ -18,14 +18,14 @@ smoke:  ## the full pipeline at toy scale, into a scratch directory
 	$(PYTHON) -m speclens.experiment --config configs/smoke.yaml --out /tmp/speclens-smoke/results --workers $(WORKERS)
 	$(PYTHON) -m speclens.report --config configs/smoke.yaml --results /tmp/speclens-smoke/results --paper /tmp/speclens-smoke/paper
 
-experiments:  ## every training run in the paper (a few CPU-hours; resumable)
+experiments:  ## every training run in the paper (about 16 CPU-hours; resumable)
 	$(PYTHON) -m speclens.experiment --config configs/paper.yaml --out results --workers $(WORKERS)
 
 verify:  ## check that committed results were produced by the current code and config
 	$(PYTHON) -m speclens.experiment --config configs/paper.yaml --out results --verify
 
-report:  ## figures, tables and numbers from results/ (about a minute)
-	$(PYTHON) -m speclens.report --config configs/paper.yaml --results results --paper paper
+report:  ## figures, tables, numbers and the README results from results/ (a minute or two)
+	$(PYTHON) -m speclens.report --config configs/paper.yaml --results results --paper paper --readme README.md
 
 paper: report  ## compile paper/main.pdf (needs latexmk or tectonic)
 	cd paper && (latexmk -pdf -interaction=nonstopmode main.tex || tectonic main.tex)
