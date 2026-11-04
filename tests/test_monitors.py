@@ -222,3 +222,20 @@ def test_linear_monitor_roundtrip_and_penalty(tmp_path):
             assert r_wrapped == pytest.approx(r_plain - 5.0 * score)
             break
         assert r_wrapped == r_plain
+
+
+def test_policy_identity_baseline_scores_each_cell_by_its_training_rate():
+    """Exact cell rates: equal cells tie exactly, and a held-out run never contributes to its own score."""
+    from speclens.analysis.monitoring import policy_identity_cv
+
+    data = pd.DataFrame({"method": ["proxy"] * 8 + ["oracle"] * 8, "checkpoint": [0, 1] * 8})
+    groups = np.repeat([0, 1, 2, 3], 4)  # seeds 0-1 are proxy runs, 2-3 oracle runs, each with both snapshots twice
+    y = np.array([0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1])
+    cv = policy_identity_cv(data, y, groups)
+    for g in range(4):
+        train = groups != g
+        for i in np.flatnonzero(groups == g):
+            same = (
+                train & (data.method == data.method[i]).to_numpy() & (data.checkpoint == data.checkpoint[i]).to_numpy()
+            )
+            assert cv.oof_scores[i] == y[same].mean()

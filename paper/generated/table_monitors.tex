@@ -4,16 +4,16 @@
 \cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){8-9}
 Task & Channel & pooled & within snapshot & policy identity & single feature & identity & ID$\to$OOD & early$\to$late \\
 \midrule
-ProxyFarming (24\%) & behavior & 0.981 {\scriptsize [0.973, 0.989]} & 0.886 & 0.948 & 0.965 & 0.033 {\scriptsize [0.020, 0.046]} & 0.962 & 0.943 \\
- & task & 0.984 {\scriptsize [0.976, 0.991]} & 0.894 &  & 0.965 & 0.036 {\scriptsize [0.022, 0.049]} & 0.971 & 0.901 \\
- & privileged$^\dagger$ & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 0.997 & 0.052 {\scriptsize [0.032, 0.072]} & 1.000 & 0.969 \\
+ProxyFarming (24\%) & behavior & 0.981 {\scriptsize [0.973, 0.989]} & 0.890 & 0.948 & 0.965 & 0.033 {\scriptsize [0.020, 0.047]} & 0.962 & 0.943 \\
+ & task & 0.984 {\scriptsize [0.976, 0.991]} & 0.901 &  & 0.965 & 0.036 {\scriptsize [0.022, 0.050]} & 0.971 & 0.901 \\
+ & privileged$^\dagger$ & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 0.997 & 0.052 {\scriptsize [0.031, 0.073]} & 1.000 & 0.969 \\
 \midrule
-SensorTamper (45\%) & behavior & 0.998 {\scriptsize [0.997, 0.999]} & 0.912 & 0.989 & 0.998 & 0.009 {\scriptsize [0.005, 0.013]} & 0.997 & 1.000 \\
- & task & 0.998 {\scriptsize [0.997, 0.999]} & 0.903 &  & 0.998 & 0.009 {\scriptsize [0.005, 0.013]} & 0.997 & 1.000 \\
- & privileged$^\dagger$ & 1.000 {\scriptsize [0.999, 1.000]} & 0.991 &  & 1.000 & 0.010 {\scriptsize [0.006, 0.014]} & 1.000 & 1.000 \\
+SensorTamper (45\%) & behavior & 0.998 {\scriptsize [0.997, 0.999]} & 0.973 & 0.990 & 0.998 & 0.008 {\scriptsize [0.005, 0.012]} & 0.997 & 1.000 \\
+ & task & 0.998 {\scriptsize [0.997, 0.999]} & 0.969 &  & 0.998 & 0.008 {\scriptsize [0.005, 0.012]} & 0.997 & 1.000 \\
+ & privileged$^\dagger$ & 1.000 {\scriptsize [0.999, 1.000]} & 0.998 &  & 1.000 & 0.010 {\scriptsize [0.006, 0.014]} & 1.000 & 1.000 \\
 \midrule
-GemTimeout (45\%) & behavior & 0.993 {\scriptsize [0.992, 0.994]} & 0.956 & 0.945 & 0.962 & 0.048 {\scriptsize [0.037, 0.060]} & 0.989 & 0.998 \\
- & task & 0.995 {\scriptsize [0.994, 0.997]} & 0.968 &  & 0.970 & 0.051 {\scriptsize [0.039, 0.062]} & 0.995 & 0.999 \\
- & privileged$^\dagger$ & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 1.000 & 0.055 {\scriptsize [0.045, 0.066]} & 1.000 & 1.000 \\
+GemTimeout (45\%) & behavior & 0.993 {\scriptsize [0.992, 0.994]} & 0.986 & 0.944 & 0.962 & 0.049 {\scriptsize [0.037, 0.060]} & 0.989 & 0.998 \\
+ & task & 0.995 {\scriptsize [0.994, 0.997]} & 0.984 &  & 0.970 & 0.051 {\scriptsize [0.040, 0.063]} & 0.995 & 0.999 \\
+ & privileged$^\dagger$ & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 1.000 & 0.056 {\scriptsize [0.045, 0.067]} & 1.000 & 1.000 \\
 \bottomrule
 \end{tabular}

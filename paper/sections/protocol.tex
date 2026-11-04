@@ -26,9 +26,10 @@ noticeably less than their nominal 95\%, which is why we do not use them.
 \paragraph{Training dynamics and dose--response.} Each run saves
 \res{snapshots} evenly spaced policy snapshots, which are evaluated on
 \res{curve-episodes} fixed ID layouts to trace proxy return, true return and
-hack rate over training. For the dose--response experiment we retrain Proxy PPO
+hack rate over training. For the dose--response experiment we train Proxy PPO
 with channel scale $\lambda\in\{\res{sweep-scales}\}$ (times the default
-bonus), with \res{sweep-seeds} seeds per value. As a reference that does not
+bonus), with \res{sweep-seeds} seeds per value; the $\lambda=1$ runs are the
+first \res{sweep-seeds} main-experiment runs. As a reference that does not
 depend on the optimizer, we also compute the exact proxy-optimal policy of
 \res{optimal-layouts} ID layouts at each scale (Appendix~\ref{app:optimal}).
 
@@ -42,9 +43,10 @@ feature is computed from; provenance is enforced in code by computing every
 feature on a copy of the trajectory restricted to its declared fields.
 \begin{itemize}[leftmargin=*,itemsep=1pt]
 \item \textbf{behavior} (\res{n-features-behavior} features): positions and
-actions. The monitor knows nothing about the task layout, but it does see how
-long the episode lasted, and in \PF{} and \ST{} an episode ends early only when
-the task is completed.
+actions. The monitor is given no layout field (goal, walls or channel cells),
+although its positions include the start cell and, in episodes that end by
+completing the task, the goal. It also sees how long the episode lasted, and in
+\PF{} and \ST{} an episode ends early only when the task is completed.
 \item \textbf{task} (\res{n-features-task} features): additionally the goal
 cell.
 \item \textbf{privileged} (\res{n-features-privileged} features): additionally
@@ -56,15 +58,19 @@ We fit logistic regression and gradient-boosted trees with leave-one-seed-out
 cross-validation: each fold holds out the proxy and oracle runs of one seed,
 so the monitor is always scored on policy lineages it has never seen. We report
 the mean held-out ROC-AUC with a $t$ interval over folds, the
-\emph{within-snapshot} AUC (the mean AUC within each run's snapshot, i.e.\
-among episodes of a single policy), and two transfer tests: training on ID
+\emph{within-snapshot} AUC (the mean AUC within each Proxy PPO snapshot that
+contains both classes, i.e.\ among the episodes of a single policy that a
+deployed monitor would watch; Oracle PPO snapshots contain at most a few
+accidental hacks and are left out), and two transfer tests: training on ID
 episodes and testing on the held-out seed's OOD episodes, and training on the
 first half of training and testing on the second half.
 
 \paragraph{Baselines a monitor must beat.} Hacking becomes more common as proxy
 training proceeds, so a monitor could score well by recognizing which policy
 produced an episode rather than what it did. The \emph{policy-identity}
-baseline is a logistic regression on the method and snapshot index alone. The
+baseline scores each held-out episode with the hack rate of its (method,
+snapshot) cell in the training runs, which is everything a monitor could learn
+from knowing what kind of policy produced the episode. The
 \emph{single-feature} baseline uses the best individual feature, with the
 feature and its sign chosen on the training folds only.
 
@@ -78,7 +84,8 @@ held-out AUC of 0.98. The privileged channel must be inadmissible and should be
 trivial; it is the positive control for the screen.
 
 \paragraph{Training against a monitor.} Finally we fit a logistic behavior
-monitor on all main-experiment ID episodes of a task and train \res{pen-seeds}
+monitor on the \res{monitor-episodes} ID episodes of a task's monitor dataset
+and train \res{pen-seeds}
 fresh Proxy PPO agents (new seeds) whose reward at the end of each episode is
 reduced by $\beta=\res{pen-beta}$ times the monitor's hack probability. A
 monitor flags an episode when that probability is at least 0.5. We compare the

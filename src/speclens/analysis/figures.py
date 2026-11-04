@@ -182,7 +182,11 @@ def dose_response_figure(episodes: pd.DataFrame, optimal: pd.DataFrame, sweep_se
             if col == 0:
                 ax.set_ylabel(label)
             if row == 1:
-                ax.set_xlabel("Corruption-channel scale")
+                ax.set_xlabel("Corruption-channel scale $\\lambda$")
+            # Linear near zero, logarithmic above: the optimum switches at small scales, PPO at large ones.
+            ax.set_xscale("symlog", linthresh=0.1, linscale=0.8)
+            ax.set_xticks([0, 0.1, 0.25, 0.5, 1, 2], ["0", "0.1", "0.25", "0.5", "1", "2"])
+            ax.minorticks_off()
     handles, labels = axes[1, 0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.03))
     fig.tight_layout(rect=(0, 0, 1, 0.96))
@@ -237,7 +241,7 @@ def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -
                 label=f"{channel} channel",
             )
             ax.plot(x, row.within_snapshot_auc, "o", markersize=5.5, markerfacecolor="white", markeredgecolor=color,
-                    markeredgewidth=1.2, zorder=5, label="within one policy snapshot")  # fmt: skip
+                    markeredgewidth=1.2, zorder=5, label="within one Proxy PPO snapshot")  # fmt: skip
             ax.plot(x + 0.09, row.selected_feature_auc, "D", markersize=3.5, color=INK, zorder=6,
                     label="best single feature")  # fmt: skip
     ax.set_xticks(range(len(envs)), envs)
@@ -249,7 +253,7 @@ def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -
     ax.grid(axis="x", visible=False)
     handles = dict(zip(*reversed(ax.get_legend_handles_labels())))
     order = [f"{c} channel" for c in CHANNEL_COLORS]
-    order += ["within one policy snapshot", "best single feature", "policy-identity baseline"]
+    order += ["within one Proxy PPO snapshot", "best single feature", "policy-identity baseline"]
     order = [label for label in order if label in handles]
     legend = ax.legend(
         [handles[k] for k in order],
@@ -260,8 +264,8 @@ def monitor_figure(results: pd.DataFrame, path: Path, model: str = "logistic") -
         handlelength=1.4,
         columnspacing=1.2,
     )
-    if "within one policy snapshot" in order:  # the open marker's legend entry stands for every channel
-        legend.legend_handles[order.index("within one policy snapshot")].set_markeredgecolor(INK_SECONDARY)
+    if "within one Proxy PPO snapshot" in order:  # the open marker's legend entry stands for every channel
+        legend.legend_handles[order.index("within one Proxy PPO snapshot")].set_markeredgecolor(INK_SECONDARY)
     fig.tight_layout()
     save(fig, path)
 

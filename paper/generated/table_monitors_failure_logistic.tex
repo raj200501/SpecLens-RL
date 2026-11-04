@@ -4,16 +4,16 @@
 \cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){8-9}
 Task & Channel & pooled & within snapshot & policy identity & single feature & identity & ID$\to$OOD & early$\to$late \\
 \midrule
-ProxyFarming (25\%) & behavior & 1.000 {\scriptsize [0.999, 1.000]} & 1.000 & 0.953 & 0.999 & 0.047 {\scriptsize [0.031, 0.063]} & 0.999 & 0.999 \\
- & task & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 1.000 & 0.047 {\scriptsize [0.032, 0.063]} & 1.000 & 1.000 \\
- & privileged$^\dagger$ & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 1.000 & 0.047 {\scriptsize [0.032, 0.063]} & 1.000 & 0.939 \\
+ProxyFarming (25\%) & behavior & 1.000 {\scriptsize [0.999, 1.000]} & 1.000 & 0.953 & 0.999 & 0.047 {\scriptsize [0.030, 0.063]} & 0.999 & 0.999 \\
+ & task$^\dagger$ & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 1.000 & 0.047 {\scriptsize [0.031, 0.063]} & 1.000 & 1.000 \\
+ & privileged$^\dagger$ & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 1.000 & 0.047 {\scriptsize [0.031, 0.063]} & 1.000 & 0.939 \\
 \midrule
-SensorTamper (56\%) & behavior & 0.999 {\scriptsize [0.999, 1.000]} & 0.985 & 0.985 & 0.999 & 0.015 {\scriptsize [0.009, 0.020]} & 1.000 & 1.000 \\
- & task & 1.000 {\scriptsize [1.000, 1.000]} & 0.999 &  & 0.999 & 0.015 {\scriptsize [0.009, 0.021]} & 1.000 & 1.000 \\
- & privileged$^\dagger$ & 1.000 {\scriptsize [1.000, 1.000]} & 0.999 &  & 0.999 & 0.015 {\scriptsize [0.009, 0.021]} & 1.000 & 1.000 \\
+SensorTamper (56\%) & behavior & 0.999 {\scriptsize [0.999, 1.000]} & 0.923 & 0.985 & 0.999 & 0.015 {\scriptsize [0.009, 0.020]} & 1.000 & 1.000 \\
+ & task & 1.000 {\scriptsize [1.000, 1.000]} & 0.995 &  & 0.999 & 0.015 {\scriptsize [0.009, 0.021]} & 1.000 & 1.000 \\
+ & privileged & 1.000 {\scriptsize [1.000, 1.000]} & 0.995 &  & 0.999 & 0.015 {\scriptsize [0.009, 0.021]} & 1.000 & 1.000 \\
 \midrule
 GemTimeout (58\%) & behavior & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 & 0.913 & 0.997 & 0.087 {\scriptsize [0.072, 0.102]} & 1.000 & 1.000 \\
  & task & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 0.998 & 0.087 {\scriptsize [0.072, 0.102]} & 1.000 & 1.000 \\
- & privileged$^\dagger$ & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 0.998 & 0.087 {\scriptsize [0.072, 0.102]} & 1.000 & 1.000 \\
+ & privileged & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 0.998 & 0.087 {\scriptsize [0.072, 0.102]} & 1.000 & 1.000 \\
 \bottomrule
 \end{tabular}

@@ -24,6 +24,11 @@ evaluation layouts per split & 500 \\
 layouts per snapshot (training curves) & 100 \\
 channel scales (sweep) & 0, 0.25, 0.5, 1, 2 \\
 layouts for the exact proxy-optimal policy & 100 \\
+channel scales (exact optimum) & 0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.5, 1, 2 \\
 monitor episodes per snapshot and split & 20 \\
+monitored snapshots & every 2. of 20 \\
+monitor models & logistic, boosting \\
+monitor penalty: channel, $\beta$, seeds & behavior, 10, 5 \\
+step limit per episode & 40 (ProxyFarming), 40 (SensorTamper), 30 (GemTimeout) \\
 \bottomrule
 \end{tabular}

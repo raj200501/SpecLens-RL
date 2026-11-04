@@ -34,10 +34,11 @@ comparable across methods within a task, not across tasks.
 \subsection{Three tasks, three mechanisms}
 All tasks are fully observed $7{\times}7$ gridworlds with walls and five actions
 (four moves and \emph{interact}). Every episode samples a fresh layout, so an
-agent cannot memorize a route. Each task has on the order of $10^8$ or more
-distinct layouts while a training run sees at most about $2\times10^5$ episodes,
-so evaluation layouts, drawn from seeds disjoint from training, are with high
-probability new to the agent.
+agent cannot memorize a route. The agent, goal and task objects are placed
+uniformly on distinct cells and the walls uniformly on the rest, so the space of
+layouts is combinatorially large, and evaluation layouts are drawn from seeds
+disjoint from training (a test checks that the evaluation layouts are
+distinct).
 Observations are one-hot object planes plus a few scalars
 (elapsed time and task state). Both rewards share a $-0.01$ step cost and pay
 $+1$ for completing the intended task. Figure~\ref{fig:tasks} shows example

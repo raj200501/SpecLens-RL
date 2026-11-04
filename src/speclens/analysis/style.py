@@ -62,6 +62,6 @@ def apply_style() -> None:
 
 def save(fig, path_stem) -> None:
     """Write ``<stem>.pdf`` for the paper and ``<stem>.png`` for the README."""
-    fig.savefig(f"{path_stem}.pdf")
+    fig.savefig(f"{path_stem}.pdf", metadata={"CreationDate": None})  # byte-stable across regenerations
     fig.savefig(f"{path_stem}.png")
     plt.close(fig)

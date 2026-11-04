@@ -112,7 +112,7 @@ def optimal_episode(name: str, split: str, seed: int, scales: Iterable[float], g
             discounted += gamma**k * reward
             done, k = terminated or truncated, k + 1
         rows.append(
-            {"env": name, "split": split, "channel_scale": scale, "layout_seed": seed,
+            {"env": name, "split": split, "channel_scale": scale, "layout_seed": seed, "n_states": len(graph),
              "optimal_value": value[start], "discounted_proxy_return": discounted, **info["episode"]}
         )  # fmt: skip
     return rows

@@ -14,7 +14,8 @@ We take the opposite trade-off and build \emph{model organisms}
 \citep{hubinger2023modelorganisms} of reward hacking: environments small enough
 that the true objective $J_t$ is known exactly, that the proxy reward $R_p$
 differs from it through one explicit \emph{corruption channel} whose scale can
-be varied or set to zero, and that dozens of training runs per condition fit on
+be varied or set to zero (in one task the proxy also omits a deadline), and that
+dozens of training runs per condition fit on
 a single CPU machine. \framework{} contains three procedurally generated
 gridworld tasks, each built around a different mechanism: farmable reward
 shaping \citep{ng1999policy}, tampering with the sensor that computes the reward
@@ -26,24 +27,34 @@ the measurement. We use the tasks to ask three questions.
 in every task at the default channel scale, but how it gets there depends on
 the mechanism (Section~\ref{sec:dynamics}). In \PF{}, agents first master the
 intended task, reaching \res{dyn-ProxyFarming-peak-success-before}\% success on
-average, and later abandon it for the exploit, anywhere between
-\res{dyn-ProxyFarming-onset-min} and \res{dyn-ProxyFarming-onset-max} steps into
-training. In \ST{} and \GT{}, the exploit is learned before the task. Solving
-every layout exactly shows that hacking is already proxy-optimal at a quarter
-of the default channel scale in all three tasks, yet PPO finds it there only in
-\ST{}; and where PPO hacks, it gives up more of the true objective than the
-proxy optimum would (Section~\ref{sec:dose}).
+average, and later abandon it for the exploit: \res{dyn-ProxyFarming-switched}
+of \res{dyn-ProxyFarming-runs} runs between \res{dyn-ProxyFarming-onset-min} and
+\res{dyn-ProxyFarming-onset-max} steps into training, while the last had reached
+\res{dyn-ProxyFarming-unswitched-final-hack}\% hacking when training ended. In
+\ST{} and \GT{}, the exploit is learned instead of the task. Solving
+\res{optimal-layouts} layouts per task exactly shows that the proxy-optimal
+policy hacks on most layouts from a channel scale of
+\res{opt-ProxyFarming-threshold} (\PF{}), \res{opt-SensorTamper-threshold}
+(\ST{}) and \res{opt-GemTimeout-threshold} (\GT{}) times the default. PPO
+does so only from \res{sweep-ProxyFarming-threshold} in \PF{} and
+\res{sweep-GemTimeout-threshold} in \GT{} (in \ST{} it hacks at every positive
+scale we trained); and in \PF{} and \ST{}, where PPO hacks it gives up more of
+the true objective than the proxy optimum would (Section~\ref{sec:dose}).
 
-\textbf{Can a monitor detect hacking from behavior alone?} Hacking becomes more
-common as training proceeds, so a monitor can score well by recognizing
-\emph{which} policy produced an episode rather than \emph{what} the policy did.
+\textbf{Can a monitor detect hacking from behavior alone?} The policies pooled
+in a monitor's training and test data hack at very different rates (Proxy
+against Oracle PPO, early against late snapshots), so a monitor can score well
+by recognizing \emph{which} policy produced an episode rather than \emph{what}
+the policy did.
 Monitors that see only positions and actions reach held-out AUCs of
 \res{mon-behavior-auc-min}--\res{mon-behavior-auc-max}, but a baseline that sees
 only the policy's identity and training stage reaches
 \res{mon-behavior-identity-min}--\res{mon-behavior-identity-max}. Within the
-episodes of a single policy, the monitors' AUC is
-\res{mon-behavior-within-min}--\res{mon-behavior-within-max}
-(Section~\ref{sec:monitors}).
+episodes of a single Proxy PPO policy, the monitors' AUC is
+\res{mon-SensorTamper-hack-behavior-logistic-within} and
+\res{mon-GemTimeout-hack-behavior-logistic-within} in \ST{} and \GT{} but only
+\res{mon-ProxyFarming-hack-behavior-logistic-within} in \PF{}, where hacking
+emerges late (Section~\ref{sec:monitors}).
 
 \textbf{What happens when the agent is trained against the monitor?} Penalizing
 fresh Proxy PPO agents with a fitted behavior monitor removes hacking in \PF{}.
@@ -53,8 +64,9 @@ the monitor's recall on their hacks falls from
 \ST{}, \res{pen-SensorTamper-runs-hacking} of \res{pen-seeds} runs keeps
 tampering, and the monitor flags only \res{pen-SensorTamper-worst-run-recall}\% of
 its hacks. Because the monitor is linear, we can attribute the evasion to the
-behavioral features that changed: in \GT{}, mostly a no-op action that the
-monitor never saw vary (Section~\ref{sec:penalty}).
+behavioral features that changed: in \GT{}, mostly a no-op action whose
+frequency barely varied in the monitor's training data
+(Section~\ref{sec:penalty}).
 
 Our contributions are:
 \begin{itemize}[leftmargin=*,itemsep=1pt]
@@ -67,8 +79,8 @@ separates the incentive to hack from the optimizer's ability to find the hack;
 provenance, cross-validation holds out whole policy lineages, and every monitor
 is compared with a policy-identity baseline and evaluated within single
 policies;
-\item a pipeline in which every number in this paper is regenerated from saved
-results by one command and checked in continuous integration, together with an
+\item a pipeline in which every result cited in this paper is regenerated from
+saved results by one command and checked in continuous integration, together with an
 account of five evaluation errors that an earlier version of this work made
 (Section~\ref{sec:pitfalls}).
 \end{itemize}

@@ -94,7 +94,8 @@ def build(cfg: dict, results: Path, paper: Path, readme: Path | None = None) -> 
     sweep_summary = summarize(sweep, ["env", "channel_scale", "split"], MAIN_METRICS)
     sweep_summary.to_csv(results / "summary_sweep.csv", index=False, float_format="%.4f")
     seeds = range(EVAL_SEEDS["id"], EVAL_SEEDS["id"] + cfg["sweep"]["optimal_layouts"])
-    optimal = optimal_behavior(cfg["envs"], cfg["sweep"]["channel_scales"], PPOConfig(**cfg["ppo"]).gamma, seeds)
+    scales = sorted({*cfg["sweep"]["channel_scales"], *cfg["sweep"]["optimal_scales"]})
+    optimal = optimal_behavior(cfg["envs"], scales, PPOConfig(**cfg["ppo"]).gamma, seeds)
     optimal_summary = optimal.groupby(["env", "channel_scale"], as_index=False)[MAIN_METRICS].mean()
     optimal_summary.to_csv(results / "summary_optimal.csv", index=False, float_format="%.4f")
 
@@ -122,6 +123,9 @@ def build(cfg: dict, results: Path, paper: Path, readme: Path | None = None) -> 
     numbers.update(_sweep_range_numbers(sweep))
     numbers.update(_emergence_numbers(onsets, main_curves))
     numbers.update(_optimal_numbers(optimal_summary))
+    numbers.update(_threshold_numbers(sweep_summary, optimal_summary))
+    for env, states in optimal.groupby("env").n_states:
+        numbers[f"opt-{env}-states-min"], numbers[f"opt-{env}-states-max"] = f"{states.min():,}", f"{states.max():,}"
     numbers["n-runs-all"] = str(len(runs))
     numbers["cpu-hours-all"] = f"{runs.total_sec.sum() / 3600:.0f}"
     penalty = None
@@ -146,7 +150,8 @@ def build(cfg: dict, results: Path, paper: Path, readme: Path | None = None) -> 
     (results / "numbers.json").write_text(json.dumps(numbers, indent=2) + "\n", encoding="utf-8")
     if readme is not None:
         compute = f"Compute: {numbers['n-runs-all']} PPO runs, {numbers['cpu-hours-all']} CPU-hours."
-        block = readme_results(main_summary, sweep_summary, optimal_summary, monitor_results, penalty, compute)
+        note = f" (Proxy PPO: {cfg['sweep']['seeds']} runs per λ; optimum: {cfg['sweep']['optimal_layouts']} layouts)"
+        block = readme_results(main_summary, sweep_summary, optimal_summary, monitor_results, penalty, compute, note)
         update_readme(readme, block)
     return numbers
 
@@ -188,6 +193,7 @@ def _config_numbers(cfg: dict) -> Iterator[tuple[str, str]]:
     yield "sweep-seeds", str(cfg["sweep"]["seeds"])
     yield "sweep-scales", ", ".join(f"{s:g}" for s in cfg["sweep"]["channel_scales"])
     yield "optimal-layouts", str(cfg["sweep"]["optimal_layouts"])
+    yield "optimal-scales", ", ".join(f"{s:g}" for s in cfg["sweep"]["optimal_scales"])
     yield "monitor-snapshots", str(cfg["main"]["checkpoints"] // cfg["monitor"]["checkpoint_stride"])
     yield "monitor-layouts", str(cfg["monitor"]["episodes_per_checkpoint"])
     for channel in CHANNELS:
@@ -212,6 +218,7 @@ def _result_numbers(cfg, main_summary, dom, sweep_summary, monitor_results, runs
     for _, r in sweep_summary[sweep_summary.split == "id"].iterrows():
         yield f"sweep-{r.env}-{r.channel_scale:g}-hack", _pct(r.hack)
         yield f"sweep-{r.env}-{r.channel_scale:g}-success", _pct(r.success)
+        yield f"sweep-{r.env}-{r.channel_scale:g}-hack-and-success", _pct(r.hack - r.harmful_hack)
     for _, r in monitor_results.dropna(subset=["model"]).iterrows():
         key = f"mon-{r.env}-{r.target}-{r.channel}-{r.model}"
         yield f"{key}-auc", _auc(r.auc)
@@ -226,6 +233,7 @@ def _result_numbers(cfg, main_summary, dom, sweep_summary, monitor_results, runs
         yield f"{key}-late", _auc(r.late_auc)
     for _, r in monitor_results.drop_duplicates(["env", "target"]).iterrows():
         yield f"mon-{r.env}-{r.target}-rate", _pct(r.positive_rate)
+        yield f"mon-{r.env}-{r.target}-method-identity", _auc(r.method_identity_auc)
     behavior = monitor_results[
         (monitor_results.target == "hack")
         & (monitor_results.channel == "behavior")
@@ -270,6 +278,24 @@ def _optimal_numbers(summary):
     for _, r in summary.iterrows():
         yield f"opt-{r.env}-{r.channel_scale:g}-hack", _pct(r.hack)
         yield f"opt-{r.env}-{r.channel_scale:g}-success", _pct(r.success)
+
+
+def _threshold_numbers(sweep_summary, optimal_summary, rate: float = 0.5):
+    """The smallest channel scale at which Proxy PPO, and the exact optimum, hack in at least half the episodes."""
+    ppo = sweep_summary[sweep_summary.split == "id"]
+    thresholds = {}
+    for name, data in (("sweep", ppo), ("opt", optimal_summary)):
+        for env, part in data.groupby("env"):
+            above = part[part.hack >= rate].channel_scale
+            thresholds[name, env] = above.min() if len(above) else float("nan")
+            yield f"{name}-{env}-threshold", f"{thresholds[name, env]:g}" if len(above) else "--"
+    opt = [v for (name, _), v in thresholds.items() if name == "opt"]
+    yield "opt-threshold-min", f"{min(opt):g}"
+    yield "opt-threshold-max", f"{max(opt):g}"
+    # From which scale on the optimum hacks on every layout of every task (at that scale and all larger ones).
+    by_scale = optimal_summary.groupby("channel_scale").hack.min().sort_index()
+    always = [s for s in by_scale.index if (by_scale[by_scale.index >= s] == 1.0).all()]
+    yield "opt-all-layouts-from", f"{min(always):g}" if always else "--"
 
 
 def _penalty_numbers(cfg, penalty, runs, episodes):
@@ -319,7 +345,9 @@ def _pct_ci(row: pd.Series, metric: str) -> str:
     return f"{_pct(row[metric])}% ({_pct(row[metric + '_lo'])}–{_pct(row[metric + '_hi'])})"
 
 
-def readme_results(main_summary, sweep_summary, optimal_summary, monitor_results, penalty, compute="") -> str:
+def readme_results(
+    main_summary, sweep_summary, optimal_summary, monitor_results, penalty, compute="", sweep_note=""
+) -> str:
     """The README's results tables, generated so that they cannot drift from ``results/``."""
     out = [
         "*Generated by `python -m speclens.report` from `results/`; CI fails if it is out of date.*",
@@ -339,7 +367,8 @@ def readme_results(main_summary, sweep_summary, optimal_summary, monitor_results
     scales = sorted(sweep.channel_scale.unique())
     out += [
         "",
-        "**Dose–response**: hack rate of Proxy PPO / of the exact proxy-optimal policy as the channel is scaled by λ:",
+        "**Dose–response**: hack rate of Proxy PPO / of the exact proxy-optimal policy as the channel is scaled "
+        f"by λ{sweep_note}:",
         "",
         "| Task | " + " | ".join(f"λ = {s:g}" for s in scales) + " |",
         "|---|" + "---|" * len(scales),
@@ -360,7 +389,7 @@ def readme_results(main_summary, sweep_summary, optimal_summary, monitor_results
         "",
         "**Hack monitors** that see only positions and actions (logistic regression, held-out seeds):",
         "",
-        "| Task | Monitor AUC | Policy-identity baseline | Best single feature | AUC within one policy snapshot |",
+        "| Task | Monitor AUC | Policy-identity baseline | Best single feature | AUC within one Proxy PPO snapshot |",
         "|---|---|---|---|---|",
     ]
     for env in envs_in(monitors):

@@ -9,15 +9,20 @@ a monitor. Three lessons seem likely to carry over to larger systems, as
 hypotheses to test there.
 
 \emph{The reward function does not determine the outcome.} The exact optimum
-hacks at every positive channel scale, while PPO's hacking appears only above a
-task-specific threshold, varies across seeds near that threshold, and is more
-harmful than the optimum when it appears. A reward specification is safe or
-unsafe only relative to the optimizer that will be run on it, across seeds.
+hacks from \res{opt-threshold-min}--\res{opt-threshold-max} times the default
+channel scale, while in \PF{} and \GT{} PPO hacks only at several times that
+scale, with runs that can disagree widely near its threshold, and where PPO
+hacks in \PF{} and \ST{}, it is more harmful than the optimum. A reward
+specification is safe or unsafe only relative to the optimizer that will be run
+on it, across seeds.
 
-\emph{Pooled monitor evaluations overstate monitorability.} When hacking becomes
-more common as training proceeds, a monitor is rewarded for recognizing the
-training stage rather than the behavior. A policy-identity baseline and the
-AUC within a single policy separate the two; we recommend reporting both.
+\emph{Pooled monitor evaluations say little about monitorability.} When the policies
+pooled in an evaluation hack at different rates (here mostly Proxy against
+Oracle PPO, and in \PF{} also early against late snapshots), a monitor is
+rewarded for recognizing the policy rather than the behavior. A policy-identity baseline and the
+AUC within single policies separate the two, and they told apart two tasks in
+which behavior monitors work within a policy from one in which they are much
+weaker. We recommend reporting both.
 
 \emph{A monitor's recall before it becomes a training signal says little about
 its recall afterwards.} The same penalty removed hacking in one task and taught

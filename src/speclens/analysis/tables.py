@@ -12,7 +12,7 @@ from speclens.envs import ENVS
 from speclens.rl import PPOConfig
 
 METHOD_NAMES = {"proxy": "Proxy PPO", "oracle": "Oracle PPO"}
-CHANNEL_NAMES = {"behavior": "behavior", "task": "task", "privileged": "privileged$^\\dagger$"}
+CHANNEL_NAMES = {"behavior": "behavior", "task": "task", "privileged": "privileged"}
 
 
 def fmt(value: float, digits: int = 2) -> str:
@@ -68,6 +68,7 @@ def spec_table(path: Path) -> None:
 def hyperparameter_table(cfg: dict, path: Path) -> None:
     """Every PPO setting actually used (including defaults the config does not set)."""
     rows = [(key.replace("_", " "), value) for key, value in PPOConfig(**cfg["ppo"]).as_dict().items()]
+    pen = cfg["monitor_penalty"]
     rows += [
         ("seeds (main / sweep)", f"{cfg['main']['seeds']} / {cfg['sweep']['seeds']}"),
         ("policy snapshots per run", cfg["main"]["checkpoints"]),
@@ -75,7 +76,12 @@ def hyperparameter_table(cfg: dict, path: Path) -> None:
         ("layouts per snapshot (training curves)", cfg["evaluation"]["curve_episodes"]),
         ("channel scales (sweep)", ", ".join(f"{s:g}" for s in cfg["sweep"]["channel_scales"])),
         ("layouts for the exact proxy-optimal policy", cfg["sweep"]["optimal_layouts"]),
+        ("channel scales (exact optimum)", ", ".join(f"{s:g}" for s in cfg["sweep"]["optimal_scales"])),
         ("monitor episodes per snapshot and split", cfg["monitor"]["episodes_per_checkpoint"]),
+        ("monitored snapshots", f"every {cfg['monitor']['checkpoint_stride']}. of {cfg['main']['checkpoints']}"),
+        ("monitor models", ", ".join(cfg["monitor"]["models"])),
+        ("monitor penalty: channel, $\\beta$, seeds", f"{pen['channel']}, {pen['beta']:g}, {pen['seeds']}"),
+        ("step limit per episode", ", ".join(f"{ENVS[n].default_max_steps} ({n})" for n in ENV_ORDER)),
     ]
     lines = ["\\begin{tabular}{@{}ll@{}}", "\\toprule", "Setting & Value \\\\", "\\midrule"]
     lines += [f"{name} & {_cell(value)} \\\\" for name, value in rows]
@@ -171,9 +177,8 @@ def monitor_table(results: pd.DataFrame, path: Path, model: str = "logistic", ta
                 fmt(row.ood_auc, 3),
                 fmt(row.late_auc, 3),
             ]
-            lines.append(
-                f"{f'{env} ({rate})' if i == 0 else ''} & {CHANNEL_NAMES[channel]} & " + " & ".join(cells) + " \\\\"
-            )
+            name = CHANNEL_NAMES[channel] + ("" if row.admissible else "$^\\dagger$")  # sees every label field
+            lines.append(f"{f'{env} ({rate})' if i == 0 else ''} & {name} & " + " & ".join(cells) + " \\\\")
         if env != envs[-1]:
             lines.append("\\midrule")
     lines += ["\\bottomrule", "\\end{tabular}"]

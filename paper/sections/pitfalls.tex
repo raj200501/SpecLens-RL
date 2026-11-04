@@ -4,8 +4,8 @@
 An earlier version of this benchmark, with fixed hand-designed layouts and a
 lighter evaluation pipeline, reported results that did not survive an
 adversarial audit of its own code. We list the failures because each one is
-easy to make in a small RL safety benchmark, and each is now guarded by a test
-in the repository.
+easy to make in a small RL safety benchmark. The first four are now guarded by
+unit tests, and the fifth by a continuous-integration check.
 
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
 \item \textbf{Repeated episodes counted as independent samples.} Deterministic
@@ -31,19 +31,22 @@ whether the channel pays; a regression test presses the console with the
 channel switched off and requires the episode to be labelled a hack.
 
 \item \textbf{Statistics of constant vectors.} A per-policy proxy--true
-correlation was computed over episodes that were all identical, and floating-
-point noise in the variance turned an undefined value into $\pm1$. \emph{Now:}
+correlation was computed over episodes that were all identical, and floating-point
+ noise in the variance turned an undefined value into $\pm1$. \emph{Now:}
 uncertainty is computed only over independent training runs, and the metric was
 dropped.
 
 \item \textbf{Hand-copied numbers.} Some numbers in the earlier manuscript came
 from exploratory runs that the documented pipeline could not regenerate.
-\emph{Now:} every experimental result and every training setting quoted in
-this paper is a macro written by \texttt{speclens.report} from the committed
-result files and configuration, and continuous integration regenerates the
-macros and tables and fails if they differ from the committed versions.
+\emph{Now:} every experimental result and every configuration setting cited
+in the text is a macro written by \texttt{speclens.report} from the committed
+result files and configuration, the task definitions are tabulated from the
+environment code, and continuous integration regenerates the macros and tables
+and fails if they differ from the committed versions. The check cannot catch a
+number typed directly into the text, and the pilot observations in
+Appendix~\ref{app:details} are not regenerated.
 \end{enumerate}
 
-None of these errors required unusual carelessness; each produced a clean-
-looking table. The common remedy was to write tests that try to break the
+None of these errors required unusual carelessness; each produced a clean-looking
+ table. The common remedy was to write tests that try to break the
 evaluation rather than tests that confirm it runs.
