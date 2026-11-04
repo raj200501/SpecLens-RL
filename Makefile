@@ -1,33 +1,33 @@
-PYTHON ?= ./.venv/bin/python
+PYTHON ?= python
+WORKERS ?= 4
 
-.PHONY: install preflight smoke stage1 stage2 plots tables paper clean_artifacts report
+.PHONY: install test lint smoke experiments verify report paper all
 
-install:
-	$(PYTHON) scripts/install_check.py --write-requirements-report
+install:  ## exact dependency versions behind the committed results, then the package
+	$(PYTHON) -m pip install -r requirements-lock.txt --extra-index-url https://download.pytorch.org/whl/cpu
+	$(PYTHON) -m pip install --no-deps -e .
 
-preflight:
-	$(PYTHON) scripts/preflight.py
+test:  ## unit tests (about a minute on a laptop)
+	$(PYTHON) -m pytest
 
-smoke:
-	$(PYTHON) scripts/run_stage0.py
+lint:
+	$(PYTHON) -m ruff check src tests
+	$(PYTHON) -m ruff format --check src tests
 
-stage1:
-	$(PYTHON) scripts/run_stage1.py
+smoke:  ## the full pipeline at toy scale, into a scratch directory
+	$(PYTHON) -m speclens.experiment --config configs/smoke.yaml --out /tmp/speclens-smoke/results --workers $(WORKERS)
+	$(PYTHON) -m speclens.report --config configs/smoke.yaml --results /tmp/speclens-smoke/results --paper /tmp/speclens-smoke/paper
 
-stage2:
-	$(PYTHON) scripts/run_stage2.py
+experiments:  ## every training run in the paper (about 16 CPU-hours; resumable)
+	$(PYTHON) -m speclens.experiment --config configs/paper.yaml --out results --workers $(WORKERS)
 
-plots:
-	$(PYTHON) scripts/make_plots.py
+verify:  ## check that every committed run's fingerprint matches the current code and config
+	$(PYTHON) -m speclens.experiment --config configs/paper.yaml --out results --verify
 
-tables:
-	$(PYTHON) scripts/make_tables.py
+report:  ## figures, tables, numbers and the README results from results/ (a minute or two)
+	$(PYTHON) -m speclens.report --config configs/paper.yaml --results results --paper paper --readme README.md
 
-paper:
-	$(PYTHON) scripts/make_paper.py
+paper: report  ## compile paper/main.pdf (needs latexmk or tectonic)
+	cd paper && (latexmk -pdf -interaction=nonstopmode main.tex || tectonic main.tex)
 
-clean_artifacts:
-	$(PYTHON) scripts/cleanup_artifacts.py
-
-report:
-	$(PYTHON) scripts/report_status.py
+all: experiments paper

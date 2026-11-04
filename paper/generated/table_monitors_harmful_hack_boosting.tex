@@ -1,0 +1,19 @@
+\begin{tabular}{@{}llccccccc@{}}
+\toprule
+& & \multicolumn{2}{c}{Monitor AUC} & \multicolumn{2}{c}{Baselines} & Gain over & \multicolumn{2}{c}{Transfer} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){8-9}
+Task & Channel & pooled & within snapshot & policy identity & single feature & identity & ID$\to$OOD & early$\to$late \\
+\midrule
+ProxyFarming (22\%) & behavior & 0.993 {\scriptsize [0.991, 0.996]} & 0.941 & 0.963 & 0.977 & 0.030 {\scriptsize [0.023, 0.037]} & 0.982 & 0.984 \\
+ & task & 0.995 {\scriptsize [0.993, 0.997]} & 0.949 &  & 0.984 & 0.032 {\scriptsize [0.024, 0.040]} & 0.990 & 0.987 \\
+ & privileged$^\dagger$ & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 0.994 & 0.037 {\scriptsize [0.029, 0.045]} & 1.000 & 1.000 \\
+\midrule
+SensorTamper (45\%) & behavior & 0.999 {\scriptsize [0.998, 1.000]} & 0.971 & 0.990 & 0.998 & 0.009 {\scriptsize [0.005, 0.013]} & 0.997 & 1.000 \\
+ & task & 0.999 {\scriptsize [0.998, 1.000]} & 0.973 &  & 0.998 & 0.009 {\scriptsize [0.005, 0.013]} & 0.997 & 1.000 \\
+ & privileged & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 1.000 & 0.010 {\scriptsize [0.006, 0.014]} & 1.000 & 1.000 \\
+\midrule
+GemTimeout (45\%) & behavior & 0.995 {\scriptsize [0.993, 0.996]} & 0.982 & 0.944 & 0.962 & 0.051 {\scriptsize [0.039, 0.062]} & 0.991 & 0.999 \\
+ & task & 0.996 {\scriptsize [0.995, 0.997]} & 0.982 &  & 0.970 & 0.052 {\scriptsize [0.040, 0.063]} & 0.993 & 1.000 \\
+ & privileged & 1.000 {\scriptsize [1.000, 1.000]} & 1.000 &  & 1.000 & 0.056 {\scriptsize [0.045, 0.067]} & 1.000 & 1.000 \\
+\bottomrule
+\end{tabular}
